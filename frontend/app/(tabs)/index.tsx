@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl, FlatList, TextInput, Animated } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl, FlatList, TextInput, Animated, Platform } from 'react-native';
 import Reanimated, { useSharedValue, useAnimatedStyle, withSpring, withTiming } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +10,12 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '@/src/AuthContext';
 import { api } from '@/src/api';
 import { useTheme } from '@/src/ThemeContext';
+
+// Fire a light impact on native; no-op on web.
+function lightHaptic() {
+  if (Platform.OS === 'web') return;
+  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+}
 
 const MOON_BG = 'https://images.unsplash.com/photo-1527842891421-42eec6e703ea?crop=entropy&cs=srgb&fm=jpg&w=1000&q=85';
 
@@ -72,7 +79,12 @@ function ZodiacCard({
   }));
 
   return (
-    <Pressable testID={`home-zodiac-${z.sign}`} onPress={onPress} style={styles.signCard} hitSlop={4}>
+    <Pressable
+      testID={`home-zodiac-${z.sign}`}
+      onPress={() => { lightHaptic(); onPress(); }}
+      style={styles.signCard}
+      hitSlop={4}
+    >
       <Reanimated.View style={animStyle}>
         <View style={[styles.signImgWrap, active && { borderColor: brand }]}>
           {z.image ? (
@@ -89,6 +101,44 @@ function ZodiacCard({
       </Reanimated.View>
       <Text style={[styles.signCardLabel, active && { color: brand }]}>{z.sign.slice(0, 3)}</Text>
     </Pressable>
+  );
+}
+
+function ConcernCard({
+  c, onPress,
+}: {
+  c: { key: string; label: string; image: string };
+  onPress: () => void;
+}) {
+  const styles = useStyles();
+  const scale = useSharedValue(1);
+
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+
+  const onPressIn = () => {
+    scale.value = withSpring(0.94, { damping: 18, stiffness: 320, mass: 0.5 });
+  };
+  const onPressOut = () => {
+    scale.value = withSpring(1, { damping: 14, stiffness: 220, mass: 0.6 });
+  };
+
+  return (
+    <Reanimated.View style={[styles.concernCardWrap, animStyle]}>
+      <Pressable
+        testID={`concern-${c.key}`}
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
+        onPress={() => { lightHaptic(); onPress(); }}
+        style={styles.concernCardInner}
+      >
+        <Image source={c.image} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
+        <LinearGradient
+          colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.75)']}
+          style={StyleSheet.absoluteFill}
+        />
+        <Text style={styles.concernLabelOverlay}>{c.label}</Text>
+      </Pressable>
+    </Reanimated.View>
   );
 }
 
@@ -260,25 +310,11 @@ export default function Home() {
             )}
           />
 
-          {/* CONCERNS — image-forward cards */}
+          {/* CONCERNS — image-forward cards with press animation */}
           <Text style={[styles.sectionTitle, { paddingHorizontal: t.spacing.xl, marginTop: t.spacing.xxl, marginBottom: t.spacing.md }]}>Ask about</Text>
           <View style={styles.concernsGrid}>
             {(data?.concerns || []).map((c: any) => (
-              <Pressable
-                key={c.key}
-                testID={`concern-${c.key}`}
-                style={styles.concernCard}
-                onPress={() => goAstros(c.specialty)}
-              >
-                <View style={styles.concernImgWrap}>
-                  <Image source={c.image} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
-                  <LinearGradient
-                    colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.75)']}
-                    style={StyleSheet.absoluteFill}
-                  />
-                  <Text style={styles.concernLabelOverlay}>{c.label}</Text>
-                </View>
-              </Pressable>
+              <ConcernCard key={c.key} c={c} onPress={() => goAstros(c.specialty)} />
             ))}
           </View>
 
@@ -488,10 +524,14 @@ function useStyles() {
   rateRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 4 },
   rateText: { color: t.color.onSurface, fontSize: 11, fontWeight: '600' },
   rateDot: { color: t.color.onSurfaceTertiary, marginHorizontal: 2 },
-  // Concerns — image-forward
+  // Concerns — image-forward with press animation
   concernsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: t.spacing.sm, paddingHorizontal: t.spacing.xl },
-  concernCard: { width: '30.5%', aspectRatio: 1, borderRadius: t.radius.md, overflow: 'hidden', borderWidth: 1, borderColor: t.color.border },
-  concernImgWrap: { flex: 1, justifyContent: 'flex-end' },
+  concernCardWrap: { width: '30.5%', aspectRatio: 1 },
+  concernCardInner: {
+    flex: 1, borderRadius: t.radius.md, overflow: 'hidden',
+    borderWidth: 1, borderColor: t.color.border,
+    justifyContent: 'flex-end',
+  },
   concernLabelOverlay: { color: '#fff', fontSize: 13, fontWeight: '700', padding: 10, letterSpacing: 0.3 },
   // Panchang — compact ribbon
   panchangSectionHeader: {
