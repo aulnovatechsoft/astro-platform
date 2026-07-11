@@ -472,8 +472,8 @@ export default function Home() {
                 <View style={styles.tarotRight}>
                   <Text style={styles.tarotEyebrow}>DAILY DRAW</Text>
                   <Text style={styles.tarotHeadline}>A message awaits you</Text>
-                  <Text style={styles.tarotBody} numberOfLines={2}>
-                    One card, one reflection. Tap to reveal today’s guidance.
+                  <Text style={styles.tarotBody} numberOfLines={1}>
+                    Discover today’s guidance.
                   </Text>
                   <View style={styles.tarotCtaBtn}>
                     <Text style={styles.tarotCtaText}>Reveal card</Text>
@@ -758,10 +758,10 @@ function useStyles() {
   },
   pKey: { color: t.color.onSurfaceTertiary, fontSize: 10, letterSpacing: 0.6, textTransform: 'uppercase' },
   pVal: { color: t.color.onSurface, fontSize: 13, fontWeight: '700', marginTop: 3 },
-  // Tarot — compact horizontal
+  // Tarot — compact horizontal; sized by content so the CTA button never gets clipped by dynamic type or long copy.
   tarotCard: {
     marginHorizontal: t.spacing.xl,
-    height: 130,
+    minHeight: 130,
     borderRadius: t.radius.lg,
     overflow: 'hidden',
     borderWidth: StyleSheet.hairlineWidth, borderColor: t.color.border,
@@ -773,6 +773,7 @@ function useStyles() {
     width: 112,
     alignItems: 'center', justifyContent: 'center',
     borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: t.color.brandSecondary,
+    paddingVertical: t.spacing.md,
   },
   tarotSparkleTop: { position: 'absolute', top: 10, left: 12, opacity: 0.7 },
   tarotSparkleBot: { position: 'absolute', bottom: 12, right: 12, opacity: 0.6 },
@@ -788,17 +789,19 @@ function useStyles() {
     fontSize: 10, letterSpacing: 2, fontWeight: '800',
   },
   tarotRight: {
-    flex: 1, paddingHorizontal: t.spacing.md, paddingVertical: t.spacing.md,
-    justifyContent: 'space-between',
+    flex: 1,
+    paddingHorizontal: t.spacing.md, paddingVertical: t.spacing.md,
+    justifyContent: 'center', // natural stacking; no space-between so the CTA can't be squeezed out
+    gap: 4,
   },
   tarotEyebrow: { color: t.color.brand, fontSize: 9, letterSpacing: 1.5, fontWeight: '800' },
-  tarotHeadline: { color: t.color.onSurface, fontSize: 15, fontFamily: t.font.display, marginTop: 2 },
-  tarotBody: { color: t.color.onSurfaceSecondary, fontSize: 11, lineHeight: 15, marginTop: 4 },
+  tarotHeadline: { color: t.color.onSurface, fontSize: 15, fontFamily: t.font.display },
+  tarotBody: { color: t.color.onSurfaceSecondary, fontSize: 11, lineHeight: 15 },
   tarotCtaBtn: {
     alignSelf: 'flex-start',
     flexDirection: 'row', alignItems: 'center', gap: 5,
     backgroundColor: t.color.brandPrimary,
-    paddingHorizontal: 12, paddingVertical: 6,
+    paddingHorizontal: 12, paddingVertical: 7,
     borderRadius: t.radius.pill,
     marginTop: 6,
   },

@@ -1,0 +1,36 @@
+{
+  "summary": "Frontend regression test PASSED for the Home 'Your card of the day' CTA clipping fix in /app/frontend/app/(tabs)/index.tsx. Executed via Playwright on the live preview URL with phone-OTP auth, at two mobile viewports (390x844 iPhone 14/15 and 360x640 small Android), against both unrevealed and revealed card states. All 5 acceptance criteria pass: (1) gold 'Reveal card' pill fully within the card container (card_bottom − pill_bottom = 21.0px on both viewports; pill bg = rgb(139,94,28) brand gold with text + arrow icon); (2) revealed state shows 'Tap to flip back' hint with zero overflow; (3) both viewports render identically at the 130px minHeight (content fits, no growth needed); (4) left TAROT tile + frame + glyph + label present, right column shows 'DAILY DRAW' eyebrow, 'A message awaits you' headline, 1-line teaser ('Discover today's guidance.'), and gold pill CTA; (5) hero horoscope card, 12 love-compatibility pills, and 4 top-rated astrologers all still render unaffected. Card height stays at exactly 130px in both states on standard fonts — well under the ~150px non-regression ceiling.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {
+        "component": "Console warnings (pre-existing, unrelated to this task)",
+        "issue": "Web preview logs the usual: 'shadow* style props are deprecated. Use boxShadow', 'props.pointerEvents is deprecated', 'Animated: useNativeDriver is not supported (web fallback)'. Not caused by this diff; carried from prior iterations."
+      }
+    ]
+  },
+  "test_report_links": [
+    "/tmp/tarot_390_unrevealed.png",
+    "/tmp/tarot_390_revealed.png",
+    "/tmp/tarot_360_unrevealed.png",
+    "/tmp/tarot_360_revealed.png"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Fix is minimal and correct. `tarotCard.minHeight: 130` (index.tsx L764) lets the card grow if a future edit adds content, while still meeting the visual baseline.",
+    "`tarotRight.justifyContent: 'center'` + `gap: 4` (L791-796) removes the space-between squeeze that previously pushed the CTA below the fixed 130px height.",
+    "`tarotBackLeft.paddingVertical: t.spacing.md` (L776) keeps the TAROT tile visually balanced if the card grows past 130px.",
+    "CTA vertical padding bumped 6 → 7 (L804) — pill is now 28px tall; still below the 44px touch-target guideline, but consistent with the rest of the app's compact pill CTAs (heroCta etc.). Consider raising to ≥44px hit area via hitSlop if a11y is a priority.",
+    "Body truncated to numberOfLines={1} (L475) with new copy 'Discover today's guidance.' — matches spec and eliminates dynamic-type overflow risk."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "N/A (not tested — frontend-only request)", "frontend": "100% (5/5 acceptance checks PASS across both viewports and both card states)" },
+  "seed_data_creation": "Ephemeral phone-OTP user (+1555xxxxxxx) with auto-populated dev_otp. No persisted seed data.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "The tarot card at /app/frontend/app/(tabs)/index.tsx (JSX L455-504, styles L761-809) is now clip-safe via minHeight + justifyContent:center + gap. Measured values on the live preview: card = 130.0px tall × 342px wide (390 viewport) / 312px wide (360 viewport); gold pill = 28px tall × 106px wide; card_bottom − pill_bottom = +21.0px in both viewports. If future edits touch this block, re-run the DOM-rect delta check: pillRect.bottom must be ≤ cardRect.bottom (0 overflow descendants). Playwright note: to reach the card, log in via phone OTP (dev_otp auto-populated) using unique +1555 numbers to avoid the 10-min rate limit on /api/auth/phone/request.",
+  "rca_of_issue": "Original bug: `tarotCard.height: 130` (fixed) + `overflow: 'hidden'` + `tarotRight.justifyContent: 'space-between'` meant that on devices with slightly larger default font metrics (iOS Dynamic Type / Android system font scale), the eyebrow (9px) + headline (15px) + 2-line body (11px×2 = 30px total) + CTA (28px) + implicit line-heights exceeded 130 − 2×16 (paddingVertical.md) = 98px of available content height, causing the CTA pill to overflow past the card's overflow:hidden border, appearing clipped. Fix: (a) minHeight replaces height so container grows when needed, (b) justifyContent:center + gap:4 replaces space-between so the CTA is never squeezed below the visible edge, (c) numberOfLines={1} on the teaser removes the biggest single source of vertical variance. Verified: card holds at exactly 130.0px in both viewports on standard web fonts, with 21px of headroom below the CTA pill."
+}
