@@ -1,0 +1,59 @@
+{
+  "summary": "Frontend regression on the Astrologers filter-bar redesign. 10 UI checks executed end-to-end via Playwright on mobile viewport (390x844) using the phone-OTP flow (dev_otp). 7/10 pass, 2/10 fail (single root cause: badge count includes sort), 1/10 blocked by test tooling (MultiSlider on web does not expose the testID prop, so the price-range drag cannot be automated). Core redesign works: compact control bar renders, Filters/Sort pills are the correct fixed-width chips, results count is inline on the right, clear-all × icon appears only when filters are active, the new active-chip row shows a chip per filter with individual remove, chips wrap to a single line for both 'Price ↑' and 'Experience', specialty selection does NOT affect the badge, empty state + reset button work, and clear-all wipes state cleanly. Bug found: the Filters badge shows the WRONG count when a non-default sort is active — spec says badge should be 3 for {gender=Male, lang=English, free=on}, but the code counts sort into activeExtra so the badge renders 4 (and 3 after removing Male, not 2). Root cause: astrologers.tsx line 146 `(sort !== 'rating' ? 1 : 0)` is included in activeExtra. Per the review request ('extras: gender + language + free; sort has its own indicator'), sort must be excluded from the badge count since the Sort pill already turns gold on non-default sort.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "Astrologers control bar — Filters badge",
+        "issue": "Badge on the 'Filters' pill over-counts. With {gender=Male, language=English, freeOnly=true, sort=price_asc} the badge renders '4' but the spec expects '3' (sort should not contribute to the badge because the Sort pill has its own gold-active indicator). Same off-by-one after removing the Male chip: badge shows '3' where '2' is expected. Root cause: /app/frontend/app/(tabs)/astrologers.tsx line 141-146 — `activeExtra` includes `(sort !== 'rating' ? 1 : 0)`. Fix: drop that term. This keeps the ctrlBtnActive gold state consistent (still driven by activeExtra > 0, and separately sort !== 'rating' still lights up the Sort pill).",
+        "testID": "expand-filters",
+        "priority": "HIGH"
+      },
+      {
+        "component": "Filter bottom sheet — MultiSlider testability",
+        "issue": "`testID='price-slider'` is passed to @ptomasroos/react-native-multi-slider but the library does not forward it to a DOM node on web, so E2E cannot drag the thumbs or read the slider by testID. Only `[data-testid='price-value']` is queryable. Consider wrapping the MultiSlider in a `<View testID='price-slider-wrap'>` so future automation can drag it. This is a test-observability issue, not a user-visible bug — test 7 (custom price → chip appears → tap chip removes it) could NOT be automated.",
+        "testID": "price-slider",
+        "priority": "LOW"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Astrologers tab",
+        "issues": [
+          "No visual issues found in the redesigned control bar: Filters pill (34px h) and Sort pill (34px h, single-line, numberOfLines=1) both stay compact, the active-chip row is horizontally scrollable at 28px h, and the × clear-all icon sits at the far right. Touch targets on the pills are ~34px tall — below the 44px iOS HIG minimum, but hitSlop is used on the × clear button (8px) so effective target ≈ 36px. Not raising as a bug because the visual is intentionally 'compact' per the review request, but worth flagging if accessibility is a priority."
+        ]
+      }
+    ],
+    "react_native_issues": [
+      {
+        "component": "Console warnings (pre-existing, not introduced by this change)",
+        "issue": "Web preview logs: (1) `Animated: useNativeDriver is not supported ... Falling back to JS-based animation` (from @gorhom/bottom-sheet, expected on web); (2) `shadow* style props are deprecated. Use boxShadow`; (3) `props.pointerEvents is deprecated. Use style.pointerEvents`; (4) React 19: `Accessing element.ref was removed`. None affect this task's functionality."
+      }
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Remove `(sort !== 'rating' ? 1 : 0)` from the `activeExtra` computation in /app/frontend/app/(tabs)/astrologers.tsx (line ~146). Keep the existing Sort pill's own gold-active state (`sort !== 'rating' && styles.ctrlBtnActive`) — that already gives sort its own visual indicator. Verify: with {Male, English, free=on, sort=Price ↑} the Filters badge should read '3'; after removing Male it should read '2'; after also resetting sort it should read '2' with only the Sort pill un-gilded.",
+    "(Optional) Wrap the MultiSlider in a `<View testID='price-slider-wrap' style={styles.sliderWrap}>` so E2E can locate and drag it on web. Currently only `price-value` text is queryable."
+  ],
+  "critical_code_review_comments": [
+    "astrologers.tsx L141-146: `activeExtra` semantics conflict with the badge-count spec — sort is double-signaled (once via badge, once via ctrlBtnActive on the Sort pill).",
+    "astrologers.tsx L189: `void expanded; void setExpanded;` is dead code — the inline-panel toggle was removed in favor of the bottom-sheet; delete `expanded/setExpanded` state entirely.",
+    "astrologers.tsx L523-527 & L578: `panel` and `resultsCount` style entries are orphaned (no longer referenced after the summary line and inline panel were removed). Safe to delete to keep the StyleSheet lean.",
+    "activeChips ordering is: gender, lang, price, free, sort. Consider putting `sort` first (or last with a visual separator) so users scan primary demographic filters first; minor UX polish."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (backend not tested this iteration — no backend changes per the review request)",
+    "frontend": "70% (7/10 PASS, 2/10 FAIL due to badge-count off-by-one, 1/10 BLOCKED by MultiSlider testID not wired on web)"
+  },
+  "seed_data_creation": "Ephemeral phone-OTP user created via +1555XXXXXXX with auto-populated dev_otp. No persisted seed data.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Once the badge-count fix lands (drop the sort term from activeExtra), re-run only checks 4 and 5 from the review request. Everything else already passes. Note that the price-range test (check 7) cannot currently be automated on web due to @ptomasroos/react-native-multi-slider not forwarding testID to the DOM — either add a wrapper View with testID or rely on manual QA / code review for that path. The @gorhom/bottom-sheet opens correctly and closes via the 'sheet-close' × or the 'sheet-apply' button. Rate-limit on /api/auth/phone/request is per-phone/10min — use a random new +1555 number each run. On the tab bar, the Astrologers tab has no testID; use `page.get_by_text('Astrologers', exact=True).first`.",
+  "rca_of_issue": "Badge over-count RCA: The developer's own change description (see review_request → 'What was changed' §1) states that Filters badge should reflect 'extras: gender + language + free; sort has its own indicator'. Implementation in /app/frontend/app/(tabs)/astrologers.tsx L141-146 includes `(sort !== 'rating' ? 1 : 0)` in activeExtra, contradicting the intent. Because the same `activeExtra > 0` also drives the ctrlBtnActive gold state on the Filters button and the Ionicon/text tint, dropping the sort term does NOT break the gold state when a non-default sort is the ONLY active filter — but only because the Sort pill has its OWN gold-active branch (`sort !== 'rating' && styles.ctrlBtnActive` at L227). Reproduction: login → Astrologers → open Filters → Male + English + Price ↑ + Free 3-min → Apply → observe 'Filters 4' badge (expected 3). Screenshot: /tmp/step4_applied.png. Fix: change L141-146 to `const activeExtra = (gender !== 'all' ? 1 : 0) + (language !== 'All' ? 1 : 0) + (price[0] > PRICE_MIN || price[1] < PRICE_MAX ? 1 : 0) + (freeOnly ? 1 : 0);`. Regression cost: near-zero — sort indicator is already independent."
+}

@@ -151,6 +151,29 @@ function AstrologersInner() {
     setPrice(DEFAULTS.price); setFreeOnly(DEFAULTS.freeOnly); setSort(DEFAULTS.sort);
   }, []);
 
+  // Active filter chips — one per applied filter, each with its own remove action.
+  const activeChips = useMemo(() => {
+    const arr: { key: string; label: string; onRemove: () => void }[] = [];
+    if (gender !== 'all') {
+      arr.push({ key: 'gender', label: gender === 'female' ? 'Female' : 'Male', onRemove: () => setGender('all') });
+    }
+    if (language !== 'All') {
+      arr.push({ key: 'lang', label: language, onRemove: () => setLanguage('All') });
+    }
+    if (price[0] > PRICE_MIN || price[1] < PRICE_MAX) {
+      const hi = price[1] >= PRICE_MAX ? '50+' : `$${price[1]}`;
+      arr.push({ key: 'price', label: `$${price[0]}–${hi}`, onRemove: () => setPrice(DEFAULTS.price) });
+    }
+    if (freeOnly) {
+      arr.push({ key: 'free', label: 'First 3-min free', onRemove: () => setFreeOnly(false) });
+    }
+    if (sort !== 'rating') {
+      const s = SORTS.find((x) => x.key === sort);
+      arr.push({ key: 'sort', label: s ? `Sort: ${s.label}` : 'Sort', onRemove: () => setSort('rating') });
+    }
+    return arr;
+  }, [gender, language, price, freeOnly, sort]);
+
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const snapPoints = useMemo(() => ['85%'], []);
   const renderBackdrop = useCallback(
@@ -191,27 +214,54 @@ function AstrologersInner() {
           </ScrollView>
         </View>
 
-        {/* Compact control bar + sheet trigger */}
+        {/* Compact control bar */}
         <View style={styles.controlBar}>
-          <Pressable testID="expand-filters" style={styles.expandBtn} onPress={openSheet}>
-            <Ionicons name="options-outline" size={16} color={t.color.brand} />
-            <Text style={styles.expandText}>Filters</Text>
+          <Pressable testID="expand-filters" style={[styles.ctrlBtn, activeExtra > 0 && styles.ctrlBtnActive]} onPress={openSheet}>
+            <Ionicons name="options-outline" size={15} color={activeExtra > 0 ? t.color.brand : t.color.onSurface} />
+            <Text style={[styles.ctrlBtnText, activeExtra > 0 && styles.ctrlBtnTextAccent]}>Filters</Text>
             {activeExtra > 0 && (
               <View style={styles.badge}><Text style={styles.badgeText}>{activeExtra}</Text></View>
             )}
           </Pressable>
 
-          <Pressable testID="sort-quick-pill" style={styles.sortQuickPill} onPress={openSheet}>
-            <Ionicons name="swap-vertical" size={14} color={t.color.onSurface} />
-            <Text style={styles.sortQuickText}>Sort · {currentSortLabel}</Text>
+          <Pressable testID="sort-quick-pill" style={[styles.ctrlBtn, sort !== 'rating' && styles.ctrlBtnActive]} onPress={openSheet}>
+            <Ionicons name="swap-vertical" size={14} color={sort !== 'rating' ? t.color.brand : t.color.onSurface} />
+            <Text style={[styles.ctrlBtnText, sort !== 'rating' && styles.ctrlBtnTextAccent]} numberOfLines={1}>
+              {currentSortLabel}
+            </Text>
           </Pressable>
 
+          <View style={{ flex: 1 }} />
+
+          <Text style={styles.resultsInline} testID="results-count">
+            {astros.length} result{astros.length === 1 ? '' : 's'}
+          </Text>
+
           {activeExtra > 0 && (
-            <Pressable testID="clear-filters" onPress={resetAll} hitSlop={8} style={styles.clearBtn}>
-              <Text style={styles.clearText}>Clear</Text>
+            <Pressable testID="clear-filters" onPress={resetAll} hitSlop={8} style={styles.clearIconBtn} accessibilityLabel="Clear all filters">
+              <Ionicons name="close-circle" size={20} color={t.color.brand} />
             </Pressable>
           )}
         </View>
+
+        {/* Active filter chips — individually removable */}
+        {activeChips.length > 0 && (
+          <View style={styles.activeChipsBar}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.activeChipsContent}>
+              {activeChips.map((c) => (
+                <Pressable
+                  key={c.key}
+                  testID={`active-chip-${c.key}`}
+                  onPress={() => { lightHaptic(); c.onRemove(); }}
+                  style={styles.activeChip}
+                >
+                  <Text style={styles.activeChipText} numberOfLines={1}>{c.label}</Text>
+                  <Ionicons name="close" size={12} color={t.color.brand} />
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         {/* (inline panel removed — filter sheet lives at end of render tree) */}
 
@@ -221,17 +271,7 @@ function AstrologersInner() {
           <FlatList
             data={astros}
             keyExtractor={(i) => i.astrologer_id}
-            contentContainerStyle={{ padding: t.spacing.xl, paddingBottom: 140, gap: t.spacing.md }}
-            ListHeaderComponent={
-              <Text style={styles.resultsCount} testID="results-count">
-                {astros.length} astrologer{astros.length === 1 ? '' : 's'}
-                {filter !== 'All' ? ` · ${filter}` : ''}
-                {gender !== 'all' ? ` · ${gender === 'female' ? 'Female' : 'Male'}` : ''}
-                {language !== 'All' ? ` · ${language}` : ''}
-                {(price[0] > PRICE_MIN || price[1] < PRICE_MAX) ? ` · $${price[0]}-${price[1] >= PRICE_MAX ? '50+' : '$' + price[1]}` : ''}
-                {freeOnly ? ' · Free' : ''}
-              </Text>
-            }
+            contentContainerStyle={{ padding: t.spacing.xl, paddingTop: t.spacing.md, paddingBottom: 140, gap: t.spacing.md }}
             ListEmptyComponent={
               <View style={styles.emptyWrap} testID="empty-state">
                 <Ionicons name="search-outline" size={40} color={t.color.onSurfaceTertiary} />
@@ -441,27 +481,45 @@ function useStyles() {
     controlBar: {
       flexDirection: 'row', alignItems: 'center', gap: 8,
       paddingHorizontal: t.spacing.xl, paddingVertical: 10,
-      borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: t.color.border,
     },
-    expandBtn: {
+    ctrlBtn: {
       flexDirection: 'row', alignItems: 'center', gap: 6,
-      paddingHorizontal: 12, paddingVertical: 8, borderRadius: t.radius.pill,
+      paddingHorizontal: 12, height: 34, borderRadius: t.radius.pill,
       borderWidth: 1, borderColor: t.color.borderStrong,
+      backgroundColor: t.color.surface,
+      maxWidth: 160,
     },
-    expandText: { color: t.color.onSurface, fontSize: 13, fontWeight: '700' },
+    ctrlBtnActive: {
+      borderColor: t.color.brand,
+      backgroundColor: t.color.brandTertiary,
+    },
+    ctrlBtnText: { color: t.color.onSurface, fontSize: 13, fontWeight: '700' },
+    ctrlBtnTextAccent: { color: t.color.brand },
     badge: {
       minWidth: 18, height: 18, paddingHorizontal: 5, borderRadius: 9,
       backgroundColor: t.color.brand, alignItems: 'center', justifyContent: 'center',
     },
     badgeText: { color: t.color.onBrandPrimary, fontSize: 10, fontWeight: '800' },
-    sortQuickPill: {
-      flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6,
-      paddingHorizontal: 12, paddingVertical: 8, borderRadius: t.radius.pill,
-      backgroundColor: t.color.surfaceSecondary, borderWidth: 1, borderColor: t.color.border,
+    resultsInline: { color: t.color.onSurfaceTertiary, fontSize: 12, fontWeight: '600' },
+    clearIconBtn: { padding: 2 },
+
+    activeChipsBar: {
+      paddingBottom: 10,
+      borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: t.color.border,
     },
-    sortQuickText: { color: t.color.onSurface, fontSize: 12, fontWeight: '600', flexShrink: 1 },
-    clearBtn: { paddingHorizontal: 8, paddingVertical: 6 },
-    clearText: { color: t.color.brand, fontSize: 12, fontWeight: '700' },
+    activeChipsContent: {
+      paddingHorizontal: t.spacing.xl,
+      gap: 6,
+      flexDirection: 'row', alignItems: 'center',
+    },
+    activeChip: {
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      paddingLeft: 10, paddingRight: 8, height: 28,
+      borderRadius: t.radius.pill,
+      backgroundColor: t.color.brandTertiary,
+      borderWidth: StyleSheet.hairlineWidth, borderColor: t.color.brandSecondary,
+    },
+    activeChipText: { color: t.color.brand, fontSize: 12, fontWeight: '700', maxWidth: 130 },
     panel: {
       paddingHorizontal: t.spacing.xl, paddingVertical: t.spacing.md, gap: t.spacing.sm,
       backgroundColor: t.color.surfaceSecondary,
