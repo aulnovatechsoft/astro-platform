@@ -19,6 +19,30 @@ function lightHaptic() {
 
 const MOON_BG = 'https://images.unsplash.com/photo-1527842891421-42eec6e703ea?crop=entropy&cs=srgb&fm=jpg&w=1000&q=85';
 
+// Static sign metadata used to enrich the hero card without a backend change.
+const SIGN_META: Record<string, { glyph: string; element: string; planet: string; el_color: string }> = {
+  Aries:       { glyph: '\u2648', element: 'Fire',  planet: 'Mars',    el_color: '#E85A4F' },
+  Taurus:      { glyph: '\u2649', element: 'Earth', planet: 'Venus',   el_color: '#8FA96E' },
+  Gemini:      { glyph: '\u264A', element: 'Air',   planet: 'Mercury', el_color: '#7FA9C4' },
+  Cancer:      { glyph: '\u264B', element: 'Water', planet: 'Moon',    el_color: '#6E90B3' },
+  Leo:         { glyph: '\u264C', element: 'Fire',  planet: 'Sun',     el_color: '#E7A94D' },
+  Virgo:       { glyph: '\u264D', element: 'Earth', planet: 'Mercury', el_color: '#8FA96E' },
+  Libra:       { glyph: '\u264E', element: 'Air',   planet: 'Venus',   el_color: '#7FA9C4' },
+  Scorpio:     { glyph: '\u264F', element: 'Water', planet: 'Pluto',   el_color: '#6E90B3' },
+  Sagittarius: { glyph: '\u2650', element: 'Fire',  planet: 'Jupiter', el_color: '#E85A4F' },
+  Capricorn:   { glyph: '\u2651', element: 'Earth', planet: 'Saturn',  el_color: '#8FA96E' },
+  Aquarius:    { glyph: '\u2652', element: 'Air',   planet: 'Uranus',  el_color: '#7FA9C4' },
+  Pisces:      { glyph: '\u2653', element: 'Water', planet: 'Neptune', el_color: '#6E90B3' },
+};
+
+// Deterministic 0-100 score keyed by sign + date + slot. Consistent within a day.
+function dailyScore(sign: string, slot: string): number {
+  const key = `${sign}|${new Date().toDateString()}|${slot}`;
+  let h = 0;
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  return 60 + (h % 40); // 60..99 — always feels positive
+}
+
 // Fallback used until /api/zodiacs resolves (matches backend shape).
 const ZODIAC_FALLBACK: Array<{ sign: string; glyph: string; image: string }> = [
   { sign: 'Aries', glyph: '\u2648', image: '' }, { sign: 'Taurus', glyph: '\u2649', image: '' },
@@ -234,22 +258,106 @@ export default function Home() {
             ))}
           </ScrollView>
 
-          {/* HERO HOROSCOPE CARD */}
-          <Pressable style={styles.hero} onPress={() => router.push('/(tabs)/kundli')} testID="home-hero-card">
-            <Image source={MOON_BG} style={StyleSheet.absoluteFill} contentFit="cover" />
-            <LinearGradient colors={['rgba(15,14,13,0.2)', 'rgba(15,14,13,0.9)']} style={StyleSheet.absoluteFill} />
-            <View style={styles.heroContent}>
-              <Text style={styles.heroLabel}>TODAY · {data?.horoscope?.dates}</Text>
-              <Text style={styles.heroTitle}>{data?.horoscope?.sign}</Text>
-              <Text style={styles.heroReading}>{data?.horoscope?.reading}</Text>
-              <View style={styles.luckyRow}>
-                <View style={styles.luckyChip}><Text style={styles.luckyKey}>Color</Text><Text style={styles.luckyVal}>{data?.horoscope?.lucky_color}</Text></View>
-                <View style={styles.luckyChip}><Text style={styles.luckyKey}>Number</Text><Text style={styles.luckyVal}>{data?.horoscope?.lucky_number}</Text></View>
-                <View style={styles.luckyChip}><Text style={styles.luckyKey}>Mood</Text><Text style={styles.luckyVal}>{data?.horoscope?.mood}</Text></View>
-                <View style={styles.luckyChip}><Text style={styles.luckyKey}>Match</Text><Text style={styles.luckyVal}>{data?.horoscope?.compat}</Text></View>
-              </View>
-            </View>
-          </Pressable>
+          {/* HERO HOROSCOPE CARD — editorial layout with sign glyph, energy meter, and daily metrics */}
+          {(() => {
+            const meta = SIGN_META[data?.horoscope?.sign as string] || SIGN_META.Leo;
+            const energy = dailyScore(data?.horoscope?.sign || 'Leo', 'energy');
+            const love = dailyScore(data?.horoscope?.sign || 'Leo', 'love');
+            const career = dailyScore(data?.horoscope?.sign || 'Leo', 'career');
+            const wellness = dailyScore(data?.horoscope?.sign || 'Leo', 'wellness');
+            return (
+              <Pressable style={styles.hero} onPress={() => router.push('/(tabs)/kundli')} testID="home-hero-card">
+                <LinearGradient
+                  colors={[t.color.surfaceSecondary, t.color.surface]}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                  style={StyleSheet.absoluteFill}
+                />
+                {/* Decorative moon on the right — contained, not overlapping text */}
+                <View style={styles.heroMoonWrap} pointerEvents="none">
+                  <Image source={MOON_BG} style={styles.heroMoon} contentFit="cover" />
+                  <LinearGradient
+                    colors={['transparent', 'rgba(0,0,0,0.55)']}
+                    style={StyleSheet.absoluteFill}
+                  />
+                </View>
+
+                {/* Header row: date + element badge */}
+                <View style={styles.heroTopRow}>
+                  <Text style={styles.heroLabel}>TODAY · {data?.horoscope?.dates}</Text>
+                  <View style={[styles.heroElBadge, { borderColor: meta.el_color + '80' }]}>
+                    <View style={[styles.heroElDot, { backgroundColor: meta.el_color }]} />
+                    <Text style={styles.heroElText}>{meta.element}</Text>
+                  </View>
+                </View>
+
+                {/* Sign block: glyph + name + planet */}
+                <View style={styles.heroSignRow}>
+                  <View style={styles.heroGlyphWrap}>
+                    <Text style={styles.heroGlyph}>{meta.glyph}</Text>
+                  </View>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={styles.heroTitle}>{data?.horoscope?.sign}</Text>
+                    <Text style={styles.heroPlanet}>Ruled by {meta.planet}</Text>
+                  </View>
+                  {/* Energy score dial (compact) */}
+                  <View style={styles.energyRing}>
+                    <Text style={styles.energyVal}>{energy}</Text>
+                    <Text style={styles.energyKey}>ENERGY</Text>
+                  </View>
+                </View>
+
+                <Text style={styles.heroReading} numberOfLines={3}>{data?.horoscope?.reading}</Text>
+
+                {/* Daily metrics bars */}
+                <View style={styles.metricsWrap}>
+                  {[
+                    { key: 'Love', val: love, icon: 'heart' as const },
+                    { key: 'Career', val: career, icon: 'briefcase' as const },
+                    { key: 'Wellness', val: wellness, icon: 'leaf' as const },
+                  ].map((m) => (
+                    <View key={m.key} style={styles.metricItem}>
+                      <View style={styles.metricHead}>
+                        <Ionicons name={m.icon} size={11} color={t.color.brand} />
+                        <Text style={styles.metricLabel}>{m.key}</Text>
+                        <Text style={styles.metricVal}>{m.val}</Text>
+                      </View>
+                      <View style={styles.metricTrack}>
+                        <View style={[styles.metricFill, { width: `${m.val}%` }]} />
+                      </View>
+                    </View>
+                  ))}
+                </View>
+
+                {/* Lucky facts — dense grid */}
+                <View style={styles.luckyGrid}>
+                  <View style={styles.luckyCell}>
+                    <Text style={styles.luckyKey}>COLOR</Text>
+                    <Text style={styles.luckyVal}>{data?.horoscope?.lucky_color}</Text>
+                  </View>
+                  <View style={styles.luckyDivider} />
+                  <View style={styles.luckyCell}>
+                    <Text style={styles.luckyKey}>NUMBER</Text>
+                    <Text style={styles.luckyVal}>{data?.horoscope?.lucky_number}</Text>
+                  </View>
+                  <View style={styles.luckyDivider} />
+                  <View style={styles.luckyCell}>
+                    <Text style={styles.luckyKey}>MOOD</Text>
+                    <Text style={styles.luckyVal}>{data?.horoscope?.mood}</Text>
+                  </View>
+                  <View style={styles.luckyDivider} />
+                  <View style={styles.luckyCell}>
+                    <Text style={styles.luckyKey}>MATCH</Text>
+                    <Text style={styles.luckyVal} numberOfLines={1}>{data?.horoscope?.compat}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.heroCta}>
+                  <Text style={styles.heroCtaText}>Read full horoscope</Text>
+                  <Ionicons name="arrow-forward" size={14} color={t.color.brand} />
+                </View>
+              </Pressable>
+            );
+          })()}
 
           {/* QUICK ACTIONS */}
           <View style={styles.quickWrap}>
@@ -342,22 +450,56 @@ export default function Home() {
             <View style={styles.panchangCell}><Text style={styles.pKey}>Rahu Kaal</Text><Text style={[styles.pVal, { color: t.color.error }]}>{data?.panchang?.rahu_kaal}</Text></View>
           </ScrollView>
 
-          {/* CARD OF THE DAY */}
-          <Text style={[styles.sectionTitle, { paddingHorizontal: t.spacing.xl, marginTop: t.spacing.xxl, marginBottom: t.spacing.md }]}>Your Card of the Day</Text>
+          {/* CARD OF THE DAY — compact horizontal, brand-tinted, adds actual context */}
+          <Text style={[styles.sectionTitle, { paddingHorizontal: t.spacing.xl, marginTop: t.spacing.xxl, marginBottom: t.spacing.md }]}>Your card of the day</Text>
           <Pressable style={styles.tarotCard} onPress={() => setCardRevealed((r) => !r)} testID="card-of-the-day">
             {!cardRevealed ? (
-              <LinearGradient colors={[t.color.brandTertiary, t.color.surfaceSecondary]} style={StyleSheet.absoluteFill}>
-                <View style={styles.tarotBackContent}>
-                  <Text style={styles.tarotBackGlyph}>✦</Text>
-                  <Text style={styles.tarotBackText}>Tap to reveal</Text>
+              <>
+                {/* Left tile: decorative tarot back */}
+                <LinearGradient
+                  colors={[t.color.brandTertiary, t.color.surfaceSecondary]}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                  style={styles.tarotBackLeft}
+                >
+                  <View style={styles.tarotSparkleTop}><Ionicons name="sparkles" size={12} color={t.color.brand} /></View>
+                  <View style={styles.tarotSparkleBot}><Ionicons name="sparkles" size={10} color={t.color.brand} /></View>
+                  <View style={styles.tarotBackFrame}>
+                    <Text style={styles.tarotBackGlyph}>✦</Text>
+                  </View>
+                  <Text style={styles.tarotBackLabel}>TAROT</Text>
+                </LinearGradient>
+                {/* Right content */}
+                <View style={styles.tarotRight}>
+                  <Text style={styles.tarotEyebrow}>DAILY DRAW</Text>
+                  <Text style={styles.tarotHeadline}>A message awaits you</Text>
+                  <Text style={styles.tarotBody} numberOfLines={2}>
+                    One card, one reflection. Tap to reveal today’s guidance.
+                  </Text>
+                  <View style={styles.tarotCtaBtn}>
+                    <Text style={styles.tarotCtaText}>Reveal card</Text>
+                    <Ionicons name="arrow-forward" size={12} color={t.color.onBrandPrimary} />
+                  </View>
                 </View>
-              </LinearGradient>
+              </>
             ) : (
-              <View style={styles.tarotFront}>
-                <Text style={styles.tarotName}>{data?.card_of_the_day?.name}</Text>
-                <Text style={styles.tarotMeaning}>{data?.card_of_the_day?.meaning}</Text>
-                <Text style={styles.tarotHint}>Tap to flip back</Text>
-              </View>
+              <>
+                <LinearGradient
+                  colors={[t.color.brandTertiary, t.color.surfaceSecondary]}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                  style={styles.tarotBackLeft}
+                >
+                  <View style={styles.tarotBackFrame}>
+                    <Text style={styles.tarotBackGlyph}>✦</Text>
+                  </View>
+                  <Text style={styles.tarotBackLabel}>{(data?.card_of_the_day?.name || '').toUpperCase()}</Text>
+                </LinearGradient>
+                <View style={styles.tarotRight}>
+                  <Text style={styles.tarotEyebrow}>TODAY&apos;S CARD</Text>
+                  <Text style={styles.tarotHeadline} numberOfLines={1}>{data?.card_of_the_day?.name}</Text>
+                  <Text style={styles.tarotBody} numberOfLines={3}>{data?.card_of_the_day?.meaning}</Text>
+                  <Text style={styles.tarotHint}>Tap to flip back</Text>
+                </View>
+              </>
             )}
           </Pressable>
 
@@ -491,16 +633,77 @@ function useStyles() {
     borderWidth: 2, borderColor: t.color.surface,
   },
   signCardLabel: { color: t.color.onSurfaceSecondary, fontSize: 11, fontWeight: '700', letterSpacing: 0.4 },
-  // Hero
-  hero: { marginHorizontal: t.spacing.xl, height: 260, borderRadius: t.radius.lg, overflow: 'hidden', justifyContent: 'flex-end' },
-  heroContent: { padding: t.spacing.xl, gap: 6 },
-  heroLabel: { color: t.color.brand, fontSize: 11, letterSpacing: 1.4, fontWeight: '700' },
-  heroTitle: { color: t.color.onSurface, fontSize: 32, fontFamily: t.font.display, lineHeight: 36 },
-  heroReading: { color: t.color.onSurfaceSecondary, fontSize: 13, marginTop: 4, lineHeight: 18 },
-  luckyRow: { flexDirection: 'row', gap: 6, marginTop: t.spacing.sm, flexWrap: 'wrap' },
-  luckyChip: { backgroundColor: 'rgba(15,14,13,0.55)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(214,168,72,0.35)' },
-  luckyKey: { color: t.color.onSurfaceTertiary, fontSize: 9, letterSpacing: 0.6 },
-  luckyVal: { color: t.color.brand, fontSize: 11, fontWeight: '700' },
+  // Hero horoscope — editorial layout
+  hero: {
+    marginHorizontal: t.spacing.xl,
+    padding: t.spacing.lg,
+    borderRadius: t.radius.lg,
+    overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth, borderColor: t.color.border,
+    gap: t.spacing.md,
+    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 3,
+  },
+  heroMoonWrap: {
+    position: 'absolute', right: -30, top: -20,
+    width: 180, height: 180, borderRadius: 90, overflow: 'hidden',
+    opacity: 0.35,
+  },
+  heroMoon: { width: '100%', height: '100%' },
+  heroTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  heroLabel: { color: t.color.brand, fontSize: 10, letterSpacing: 1.6, fontWeight: '800' },
+  heroElBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 9, paddingVertical: 4, borderRadius: t.radius.pill,
+    backgroundColor: 'rgba(0,0,0,0.28)',
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  heroElDot: { width: 6, height: 6, borderRadius: 3 },
+  heroElText: { color: t.color.onSurface, fontSize: 10, fontWeight: '700', letterSpacing: 0.6 },
+  heroSignRow: { flexDirection: 'row', alignItems: 'center', gap: t.spacing.md },
+  heroGlyphWrap: {
+    width: 56, height: 56, borderRadius: 28,
+    backgroundColor: t.color.brandTertiary,
+    borderWidth: 1, borderColor: t.color.brandSecondary,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  heroGlyph: { color: t.color.brand, fontSize: 30, lineHeight: 34, marginTop: -2 },
+  heroTitle: { color: t.color.onSurface, fontSize: 28, fontFamily: t.font.display, lineHeight: 32 },
+  heroPlanet: { color: t.color.onSurfaceTertiary, fontSize: 11, letterSpacing: 0.4 },
+  energyRing: {
+    width: 56, height: 56, borderRadius: 28,
+    borderWidth: 2, borderColor: t.color.brand,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  energyVal: { color: t.color.brand, fontSize: 18, fontWeight: '800', lineHeight: 20 },
+  energyKey: { color: t.color.onSurfaceTertiary, fontSize: 7, letterSpacing: 0.8, fontWeight: '700', marginTop: 1 },
+  heroReading: { color: t.color.onSurfaceSecondary, fontSize: 13, lineHeight: 19 },
+  metricsWrap: { gap: 8 },
+  metricItem: { gap: 4 },
+  metricHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  metricLabel: { color: t.color.onSurfaceSecondary, fontSize: 11, fontWeight: '600', flex: 1 },
+  metricVal: { color: t.color.brand, fontSize: 11, fontWeight: '800' },
+  metricTrack: {
+    height: 4, borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.06)', overflow: 'hidden',
+  },
+  metricFill: { height: '100%', backgroundColor: t.color.brand, borderRadius: 2 },
+  luckyGrid: {
+    flexDirection: 'row', alignItems: 'stretch',
+    backgroundColor: 'rgba(0,0,0,0.28)',
+    borderRadius: t.radius.md,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(214,168,72,0.25)',
+    paddingVertical: 8,
+  },
+  luckyCell: { flex: 1, alignItems: 'center', paddingHorizontal: 4, gap: 2 },
+  luckyDivider: { width: StyleSheet.hairlineWidth, backgroundColor: 'rgba(214,168,72,0.28)', marginVertical: 6 },
+  luckyKey: { color: t.color.onSurfaceTertiary, fontSize: 9, letterSpacing: 0.8, fontWeight: '700' },
+  luckyVal: { color: t.color.brand, fontSize: 12, fontWeight: '800' },
+  heroCta: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    paddingTop: 2,
+  },
+  heroCtaText: { color: t.color.brand, fontSize: 12, fontWeight: '700', letterSpacing: 0.4 },
   // Quick
   quickWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: t.spacing.sm, paddingHorizontal: t.spacing.xl, marginTop: t.spacing.lg },
   quickCard: { width: '47%', backgroundColor: t.color.surfaceSecondary, borderRadius: t.radius.md, padding: t.spacing.md, borderWidth: 1, borderColor: t.color.border },
@@ -555,15 +758,52 @@ function useStyles() {
   },
   pKey: { color: t.color.onSurfaceTertiary, fontSize: 10, letterSpacing: 0.6, textTransform: 'uppercase' },
   pVal: { color: t.color.onSurface, fontSize: 13, fontWeight: '700', marginTop: 3 },
-  // Tarot
-  tarotCard: { marginHorizontal: t.spacing.xl, height: 200, borderRadius: t.radius.lg, overflow: 'hidden', borderWidth: 1, borderColor: t.color.brandSecondary, justifyContent: 'center', alignItems: 'center' },
-  tarotBackContent: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
-  tarotBackGlyph: { color: t.color.brand, fontSize: 64 },
-  tarotBackText: { color: t.color.onSurfaceSecondary, letterSpacing: 1.5, fontSize: 12, fontWeight: '700' },
-  tarotFront: { padding: t.spacing.xl, alignItems: 'center', gap: t.spacing.sm },
-  tarotName: { color: t.color.brand, fontSize: 26, fontFamily: t.font.display },
-  tarotMeaning: { color: t.color.onSurfaceSecondary, fontSize: 14, textAlign: 'center', lineHeight: 20 },
-  tarotHint: { color: t.color.onSurfaceTertiary, fontSize: 10, marginTop: t.spacing.sm },
+  // Tarot — compact horizontal
+  tarotCard: {
+    marginHorizontal: t.spacing.xl,
+    height: 130,
+    borderRadius: t.radius.lg,
+    overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth, borderColor: t.color.border,
+    backgroundColor: t.color.surfaceSecondary,
+    flexDirection: 'row',
+    shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2,
+  },
+  tarotBackLeft: {
+    width: 112,
+    alignItems: 'center', justifyContent: 'center',
+    borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: t.color.brandSecondary,
+  },
+  tarotSparkleTop: { position: 'absolute', top: 10, left: 12, opacity: 0.7 },
+  tarotSparkleBot: { position: 'absolute', bottom: 12, right: 12, opacity: 0.6 },
+  tarotBackFrame: {
+    width: 62, height: 62, borderRadius: 10,
+    borderWidth: 1, borderColor: t.color.brand,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.2)',
+  },
+  tarotBackGlyph: { color: t.color.brand, fontSize: 30, lineHeight: 34 },
+  tarotBackLabel: {
+    marginTop: 8, color: t.color.brand,
+    fontSize: 10, letterSpacing: 2, fontWeight: '800',
+  },
+  tarotRight: {
+    flex: 1, paddingHorizontal: t.spacing.md, paddingVertical: t.spacing.md,
+    justifyContent: 'space-between',
+  },
+  tarotEyebrow: { color: t.color.brand, fontSize: 9, letterSpacing: 1.5, fontWeight: '800' },
+  tarotHeadline: { color: t.color.onSurface, fontSize: 15, fontFamily: t.font.display, marginTop: 2 },
+  tarotBody: { color: t.color.onSurfaceSecondary, fontSize: 11, lineHeight: 15, marginTop: 4 },
+  tarotCtaBtn: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: t.color.brandPrimary,
+    paddingHorizontal: 12, paddingVertical: 6,
+    borderRadius: t.radius.pill,
+    marginTop: 6,
+  },
+  tarotCtaText: { color: t.color.onBrandPrimary, fontSize: 11, fontWeight: '800', letterSpacing: 0.3 },
+  tarotHint: { color: t.color.onSurfaceTertiary, fontSize: 9, letterSpacing: 0.8, marginTop: 4 },
   // Compat
   compatCard: { marginHorizontal: t.spacing.xl, padding: t.spacing.lg, borderRadius: t.radius.md, backgroundColor: t.color.surfaceSecondary, borderWidth: 1, borderColor: t.color.border },
   compatRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: t.spacing.md },
