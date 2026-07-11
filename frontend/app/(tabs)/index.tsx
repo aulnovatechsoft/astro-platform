@@ -452,7 +452,7 @@ export default function Home() {
 
           {/* CARD OF THE DAY — compact horizontal, brand-tinted, adds actual context */}
           <Text style={[styles.sectionTitle, { paddingHorizontal: t.spacing.xl, marginTop: t.spacing.xxl, marginBottom: t.spacing.md }]}>Your card of the day</Text>
-          <Pressable style={styles.tarotCard} onPress={() => setCardRevealed((r) => !r)} testID="card-of-the-day">
+          <Pressable style={styles.tarotCard} onPress={() => setCardRevealed((r) => !r)} testID="card-of-the-day" hitSlop={8}>
             {!cardRevealed ? (
               <>
                 {/* Left tile: decorative tarot back */}
