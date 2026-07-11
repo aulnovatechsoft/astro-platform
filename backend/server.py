@@ -96,6 +96,7 @@ class ReviewCreate(BaseModel):
     astrologer_id: str
     rating: int
     comment: str
+    chat_id: Optional[str] = None
 
 # ---------- Seed Data ----------
 SEED_ASTROLOGERS = [
@@ -283,11 +284,16 @@ async def startup():
     await db.astrologers.create_index("astrologer_id", unique=True)
     await db.messages.create_index([("chat_id", 1), ("created_at", 1)])
 
-    # Seed astrologers
+    # Seed astrologers — split fields:
+    #   $setOnInsert: rating/reviews_count/orders (mutable — do not overwrite on restart)
+    #   $set:         static profile info (name, avatar, bio, price…)
+    MUTABLE = {"rating", "reviews_count", "orders"}
     for a in SEED_ASTROLOGERS:
+        set_fields = {k: v for k, v in a.items() if k not in MUTABLE}
+        set_on_insert = {k: a[k] for k in MUTABLE if k in a}
         await db.astrologers.update_one(
             {"astrologer_id": a["astrologer_id"]},
-            {"$set": a},
+            {"$set": set_fields, "$setOnInsert": set_on_insert},
             upsert=True,
         )
     logger.info("Seeded %d astrologers", len(SEED_ASTROLOGERS))
@@ -789,6 +795,13 @@ async def generate_kundli(payload: BirthDetails, user: dict = Depends(require_us
 async def create_review(payload: ReviewCreate, user: dict = Depends(require_user)):
     if payload.rating < 1 or payload.rating > 5:
         raise HTTPException(status_code=400, detail="Rating 1-5")
+
+    # Block resubmission for the same chat by the same user
+    if payload.chat_id:
+        existing = await db.reviews.find_one({"chat_id": payload.chat_id, "user_id": user['user_id']})
+        if existing:
+            raise HTTPException(status_code=409, detail="You have already reviewed this session")
+
     review = {
         "review_id": f"rev_{uuid.uuid4().hex[:12]}",
         "astrologer_id": payload.astrologer_id,
@@ -796,9 +809,25 @@ async def create_review(payload: ReviewCreate, user: dict = Depends(require_user
         "user_name": user.get('name', 'Anonymous'),
         "rating": payload.rating,
         "comment": payload.comment,
+        "chat_id": payload.chat_id,
         "created_at": utcnow(),
     }
     await db.reviews.insert_one(dict(review))
+
+    # Recompute astrologer average rating & reviews_count
+    pipeline = [
+        {"$match": {"astrologer_id": payload.astrologer_id}},
+        {"$group": {"_id": "$astrologer_id", "avg": {"$avg": "$rating"}, "count": {"$sum": 1}}},
+    ]
+    agg = await db.reviews.aggregate(pipeline).to_list(1)
+    if agg:
+        new_avg = round(agg[0]['avg'], 2)
+        new_count = agg[0]['count']
+        await db.astrologers.update_one(
+            {"astrologer_id": payload.astrologer_id},
+            {"$set": {"rating": new_avg, "reviews_count": new_count}},
+        )
+
     review['created_at'] = review['created_at'].isoformat()
     return review
 

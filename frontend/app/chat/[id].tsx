@@ -4,6 +4,8 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
+import Animated, { FadeInUp, FadeOutDown } from 'react-native-reanimated';
 import { theme } from '@/src/theme';
 import { api, wsUrl } from '@/src/api';
 import { useAuth } from '@/src/AuthContext';
@@ -26,6 +28,8 @@ export default function ChatScreen() {
   const [reviewText, setReviewText] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const [reviewError, setReviewError] = useState('');
   const wsRef = useRef<WebSocket | null>(null);
   const listRef = useRef<FlatList>(null);
 
@@ -100,18 +104,31 @@ export default function ChatScreen() {
   const submitReview = async () => {
     if (rating < 1 || !astro) return;
     setSubmittingReview(true);
+    setReviewError('');
     try {
       await api.post('/api/reviews', {
         astrologer_id: astro.astrologer_id,
         rating,
         comment: reviewText.trim() || 'Great session',
+        chat_id: id,
       });
       setReviewSubmitted(true);
+      if (Platform.OS !== 'web') {
+        try { await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
+      }
       setShowRating(false);
+      setToast('Thank you for your review');
       wsRef.current?.close();
-      setTimeout(() => router.back(), 200);
-    } catch {
-      // fail silently, keep modal open so they can retry
+      setTimeout(() => {
+        setToast(null);
+        router.back();
+      }, 1400);
+    } catch (e: any) {
+      const msg = e?.message || 'Could not submit review';
+      setReviewError(msg);
+      if (msg.toLowerCase().includes('already')) {
+        setReviewSubmitted(true);
+      }
     } finally {
       setSubmittingReview(false);
     }
@@ -242,9 +259,26 @@ export default function ChatScreen() {
                   : <Text style={styles.submitText}>Submit review</Text>}
               </Pressable>
             </View>
+
+            {!!reviewError && <Text style={styles.reviewErrorText} testID="review-error">{reviewError}</Text>}
           </View>
         </View>
       </Modal>
+
+      {!!toast && (
+        <Animated.View
+          entering={FadeInUp.duration(220)}
+          exiting={FadeOutDown.duration(220)}
+          style={styles.toast}
+          testID="review-toast"
+          pointerEvents="none"
+        >
+          <View style={styles.toastIcon}>
+            <Ionicons name="checkmark" size={16} color={theme.color.onBrandPrimary} />
+          </View>
+          <Text style={styles.toastText}>{toast}</Text>
+        </Animated.View>
+      )}
     </View>
   );
 }
@@ -284,4 +318,22 @@ const styles = StyleSheet.create({
   skipText: { color: theme.color.onSurfaceSecondary, fontWeight: '600' },
   submitBtn: { flex: 2, paddingVertical: 14, borderRadius: theme.radius.pill, backgroundColor: theme.color.brand, alignItems: 'center' },
   submitText: { color: theme.color.onBrandPrimary, fontWeight: '700' },
+  reviewErrorText: { color: theme.color.error, fontSize: 12, textAlign: 'center', marginTop: -4 },
+  toast: {
+    position: 'absolute',
+    left: 20, right: 20, bottom: 40,
+    backgroundColor: theme.color.surfaceSecondary,
+    borderWidth: 1, borderColor: theme.color.brand,
+    borderRadius: theme.radius.pill,
+    paddingHorizontal: 14, paddingVertical: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 8, shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
+  toastIcon: {
+    width: 22, height: 22, borderRadius: 11,
+    backgroundColor: theme.color.brand,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  toastText: { color: theme.color.onSurface, fontSize: 14, fontWeight: '600', flex: 1 },
 });

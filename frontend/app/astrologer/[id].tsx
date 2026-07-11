@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { theme } from '@/src/theme';
 import { api } from '@/src/api';
 import { useAuth } from '@/src/AuthContext';
@@ -16,10 +16,12 @@ export default function AstroDetail() {
   const [astro, setAstro] = useState<any>(null);
   const [starting, setStarting] = useState<'chat' | 'call' | null>(null);
 
-  useEffect(() => {
-    if (!id) return;
-    api.get(`/api/astrologers/${id}`).then(setAstro);
-  }, [id]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!id) return;
+      api.get(`/api/astrologers/${id}`).then(setAstro);
+    }, [id])
+  );
 
   const startChat = async () => {
     setStarting('chat');
