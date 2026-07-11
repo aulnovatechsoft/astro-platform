@@ -75,7 +75,7 @@ function AstrologersInner() {
   const [price, setPrice] = useState<[number, number]>(DEFAULTS.price);
   const [freeOnly, setFreeOnly] = useState<boolean>(DEFAULTS.freeOnly);
   const [sort, setSort] = useState<SortKey>(DEFAULTS.sort);
-  const [expanded, setExpanded] = useState(false);
+  const bottomSheetRef = useRef<BottomSheetModal>(null);
   const [hydrated, setHydrated] = useState(false);
 
   const [astros, setAstros] = useState<any[]>([]);
@@ -178,7 +178,6 @@ function AstrologersInner() {
     return arr;
   }, [gender, language, price, freeOnly, sort]);
 
-  const bottomSheetRef = useRef<BottomSheetModal>(null);
   const snapPoints = useMemo(() => ['85%'], []);
   const renderBackdrop = useCallback(
     (props: any) => <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} opacity={0.6} pressBehavior="close" />,
@@ -189,8 +188,6 @@ function AstrologersInner() {
     bottomSheetRef.current?.present();
   }, []);
   const closeSheet = useCallback(() => bottomSheetRef.current?.dismiss(), []);
-  // silence unused
-  void expanded; void setExpanded;
 
   const currentSortLabel = SORTS.find((s) => s.key === sort)?.label || 'Top rated';
 
