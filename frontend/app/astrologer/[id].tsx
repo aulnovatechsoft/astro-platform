@@ -1,0 +1,171 @@
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { theme } from '@/src/theme';
+import { api } from '@/src/api';
+import { useAuth } from '@/src/AuthContext';
+
+export default function AstroDetail() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const { user, refresh } = useAuth();
+  const [astro, setAstro] = useState<any>(null);
+  const [starting, setStarting] = useState<'chat' | 'call' | null>(null);
+
+  useEffect(() => {
+    if (!id) return;
+    api.get(`/api/astrologers/${id}`).then(setAstro);
+  }, [id]);
+
+  const startChat = async () => {
+    setStarting('chat');
+    try {
+      const resp = await api.post(`/api/chat/start/${id}`);
+      await refresh();
+      router.push(`/chat/${resp.chat_id}` as any);
+    } catch (e: any) {
+      Alert.alert('Cannot start chat', e.message);
+    } finally { setStarting(null); }
+  };
+
+  const startCall = async () => {
+    if (!astro) return;
+    if ((user?.wallet_balance ?? 0) < astro.price_per_min) {
+      Alert.alert('Insufficient balance', `You need at least $${astro.price_per_min} to start a call.`);
+      return;
+    }
+    setStarting('call');
+    router.push(`/call/${id}` as any);
+    setStarting(null);
+  };
+
+  if (!astro) return <View style={styles.root}><ActivityIndicator color={theme.color.brand} style={{ marginTop: 100 }} /></View>;
+
+  return (
+    <View style={styles.root}>
+      <View style={styles.cover}>
+        <Image source={astro.avatar} style={StyleSheet.absoluteFill} contentFit="cover" />
+        <LinearGradient colors={['rgba(15,14,13,0)', 'rgba(15,14,13,0.85)', theme.color.surface]} locations={[0, 0.7, 1]} style={StyleSheet.absoluteFill} />
+        <SafeAreaView edges={['top']} style={styles.coverHeader}>
+          <Pressable testID="back-btn" onPress={() => router.back()} style={styles.iconBtn}>
+            <Ionicons name="chevron-back" size={22} color={theme.color.onSurface} />
+          </Pressable>
+          <Pressable style={styles.iconBtn}>
+            <Ionicons name="heart-outline" size={22} color={theme.color.onSurface} />
+          </Pressable>
+        </SafeAreaView>
+      </View>
+
+      <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: 140 }}>
+        <View style={styles.headerBlock}>
+          <Text style={styles.name}>{astro.name}</Text>
+          <Text style={styles.specs}>{astro.specialties.join(' · ')}</Text>
+          <View style={styles.langRow}>
+            {astro.languages.map((l: string) => (
+              <View key={l} style={styles.langChip}><Text style={styles.langText}>{l}</Text></View>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.metrics}>
+          <View style={styles.metric}>
+            <Text style={styles.metricValue}>{astro.experience_years}+</Text>
+            <Text style={styles.metricLabel}>Years</Text>
+          </View>
+          <View style={styles.dividerV} />
+          <View style={styles.metric}>
+            <Text style={styles.metricValue}>{astro.orders.toLocaleString()}</Text>
+            <Text style={styles.metricLabel}>Orders</Text>
+          </View>
+          <View style={styles.dividerV} />
+          <View style={styles.metric}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Ionicons name="star" size={16} color={theme.color.brand} />
+              <Text style={styles.metricValue}>{astro.rating.toFixed(1)}</Text>
+            </View>
+            <Text style={styles.metricLabel}>{astro.reviews_count.toLocaleString()} reviews</Text>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>About</Text>
+          <Text style={styles.bio}>{astro.bio}</Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Reviews</Text>
+          {(astro.reviews || []).length === 0 && <Text style={styles.emptyReview}>Be the first to leave a review after your session.</Text>}
+          {(astro.reviews || []).map((r: any) => (
+            <View key={r.review_id} style={styles.reviewCard}>
+              <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
+                {Array.from({ length: r.rating }).map((_, i) => (<Ionicons key={i} name="star" size={12} color={theme.color.brand} />))}
+                <Text style={styles.reviewName}>· {r.user_name}</Text>
+              </View>
+              <Text style={styles.reviewText}>{r.comment}</Text>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+
+      <View style={styles.ctaBar}>
+        <Pressable
+          testID="start-chat-cta"
+          style={[styles.cta, styles.ctaPrimary]}
+          onPress={startChat}
+          disabled={!!starting}
+        >
+          {starting === 'chat' ? <ActivityIndicator color={theme.color.onBrandPrimary} /> : (
+            <>
+              <Ionicons name="chatbubble" size={16} color={theme.color.onBrandPrimary} />
+              <Text style={styles.ctaText}>Chat · ${astro.price_per_min}/min</Text>
+            </>
+          )}
+        </Pressable>
+        <Pressable
+          testID="start-call-cta"
+          style={[styles.cta, styles.ctaSecondary]}
+          onPress={startCall}
+          disabled={!!starting}
+        >
+          <Ionicons name="call" size={16} color={theme.color.brand} />
+          <Text style={[styles.ctaText, { color: theme.color.brand }]}>Call</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: theme.color.surface },
+  cover: { height: 380 },
+  coverHeader: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: theme.spacing.lg },
+  iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(15,14,13,0.6)', alignItems: 'center', justifyContent: 'center' },
+  scroll: { flex: 1, marginTop: -100 },
+  headerBlock: { paddingHorizontal: theme.spacing.xl, paddingBottom: theme.spacing.md },
+  name: { color: theme.color.onSurface, fontSize: 32, fontFamily: theme.font.display },
+  specs: { color: theme.color.brand, marginTop: 4, fontWeight: '600' },
+  langRow: { flexDirection: 'row', gap: 6, marginTop: theme.spacing.sm, flexWrap: 'wrap' },
+  langChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: theme.radius.pill, backgroundColor: theme.color.surfaceSecondary, borderWidth: 1, borderColor: theme.color.border },
+  langText: { color: theme.color.onSurfaceSecondary, fontSize: 11 },
+  metrics: { flexDirection: 'row', marginHorizontal: theme.spacing.xl, padding: theme.spacing.lg, backgroundColor: theme.color.surfaceSecondary, borderRadius: theme.radius.md, borderWidth: 1, borderColor: theme.color.border },
+  metric: { flex: 1, alignItems: 'center', gap: 4 },
+  metricValue: { color: theme.color.onSurface, fontSize: 18, fontWeight: '700' },
+  metricLabel: { color: theme.color.onSurfaceTertiary, fontSize: 11 },
+  dividerV: { width: 1, backgroundColor: theme.color.border },
+  section: { paddingHorizontal: theme.spacing.xl, marginTop: theme.spacing.xl, gap: theme.spacing.sm },
+  sectionTitle: { color: theme.color.onSurface, fontSize: 18, fontFamily: theme.font.display },
+  bio: { color: theme.color.onSurfaceSecondary, lineHeight: 22, fontSize: 14 },
+  reviewCard: { padding: theme.spacing.md, backgroundColor: theme.color.surfaceSecondary, borderRadius: theme.radius.md, borderWidth: 1, borderColor: theme.color.border, gap: 6 },
+  reviewName: { color: theme.color.onSurfaceTertiary, fontSize: 12 },
+  reviewText: { color: theme.color.onSurfaceSecondary, fontSize: 13 },
+  emptyReview: { color: theme.color.onSurfaceTertiary, fontSize: 13, fontStyle: 'italic' },
+  ctaBar: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', gap: theme.spacing.sm, paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md, paddingBottom: theme.spacing.xl, backgroundColor: theme.color.surface, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.color.border },
+  cta: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: theme.radius.pill },
+  ctaPrimary: { backgroundColor: theme.color.brand, flex: 2 },
+  ctaSecondary: { borderWidth: 1, borderColor: theme.color.brand },
+  ctaText: { color: theme.color.onBrandPrimary, fontWeight: '700' },
+});
