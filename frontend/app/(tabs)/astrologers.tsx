@@ -1,11 +1,12 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable, FlatList, ScrollView, ActivityIndicator, Platform, LayoutAnimation, UIManager } from 'react-native';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, Pressable, FlatList, ScrollView, ActivityIndicator, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
+import { BottomSheetModal, BottomSheetModalProvider, BottomSheetBackdrop, BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { api } from '@/src/api';
 import { useTheme } from '@/src/ThemeContext';
 import { storage } from '@/src/utils/storage';
@@ -18,6 +19,7 @@ const GENDERS = [
 ];
 const LANGUAGES = ['All', 'English', 'Hindi', 'Spanish', 'Mandarin', 'Portuguese', 'Marathi'];
 const SORTS = [
+  { key: 'trending',   label: 'Trending', icon: 'flame' as const },
   { key: 'rating',     label: 'Top rated', icon: 'star' as const },
   { key: 'experience', label: 'Experience', icon: 'ribbon' as const },
   { key: 'price_asc',  label: 'Price ↑',    icon: 'trending-up' as const },
@@ -28,7 +30,7 @@ const PRICE_MAX = 50;
 const STORAGE_KEY = 'aura_astro_filters_v2';
 
 type Gender = 'all' | 'female' | 'male';
-type SortKey = 'rating' | 'experience' | 'price_asc';
+type SortKey = 'trending' | 'rating' | 'experience' | 'price_asc';
 
 type PersistedFilters = {
   filter: string;
@@ -44,8 +46,8 @@ const DEFAULTS: PersistedFilters = {
   price: [PRICE_MIN, PRICE_MAX], freeOnly: false, sort: 'rating',
 };
 
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
+if (Platform.OS === 'android') {
+  // no-op — LayoutAnimation replaced by bottom sheet
 }
 
 function lightHaptic() {
@@ -54,6 +56,14 @@ function lightHaptic() {
 }
 
 export default function Astrologers() {
+  return (
+    <BottomSheetModalProvider>
+      <AstrologersInner />
+    </BottomSheetModalProvider>
+  );
+}
+
+function AstrologersInner() {
   const t = useTheme();
   const styles = useStyles();
   const router = useRouter();
@@ -98,7 +108,7 @@ export default function Astrologers() {
     }
     if (params.freeOnly === 'true') {
       setFreeOnly(true);
-      setExpanded(true);
+      bottomSheetRef.current?.present();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated, params.specialty, params.freeOnly]);
@@ -141,10 +151,19 @@ export default function Astrologers() {
     setPrice(DEFAULTS.price); setFreeOnly(DEFAULTS.freeOnly); setSort(DEFAULTS.sort);
   }, []);
 
-  const toggleExpand = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setExpanded((e) => !e);
-  };
+  const bottomSheetRef = useRef<BottomSheetModal>(null);
+  const snapPoints = useMemo(() => ['85%'], []);
+  const renderBackdrop = useCallback(
+    (props: any) => <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} opacity={0.6} pressBehavior="close" />,
+    []
+  );
+  const openSheet = useCallback(() => {
+    lightHaptic();
+    bottomSheetRef.current?.present();
+  }, []);
+  const closeSheet = useCallback(() => bottomSheetRef.current?.dismiss(), []);
+  // silence unused
+  void expanded; void setExpanded;
 
   const currentSortLabel = SORTS.find((s) => s.key === sort)?.label || 'Top rated';
 
@@ -172,18 +191,17 @@ export default function Astrologers() {
           </ScrollView>
         </View>
 
-        {/* Expand bar + compact sort pill */}
+        {/* Compact control bar + sheet trigger */}
         <View style={styles.controlBar}>
-          <Pressable testID="expand-filters" style={styles.expandBtn} onPress={toggleExpand}>
+          <Pressable testID="expand-filters" style={styles.expandBtn} onPress={openSheet}>
             <Ionicons name="options-outline" size={16} color={t.color.brand} />
             <Text style={styles.expandText}>Filters</Text>
             {activeExtra > 0 && (
               <View style={styles.badge}><Text style={styles.badgeText}>{activeExtra}</Text></View>
             )}
-            <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={14} color={t.color.onSurfaceTertiary} />
           </Pressable>
 
-          <Pressable testID="sort-quick-pill" style={styles.sortQuickPill} onPress={toggleExpand}>
+          <Pressable testID="sort-quick-pill" style={styles.sortQuickPill} onPress={openSheet}>
             <Ionicons name="swap-vertical" size={14} color={t.color.onSurface} />
             <Text style={styles.sortQuickText}>Sort · {currentSortLabel}</Text>
           </Pressable>
@@ -195,114 +213,7 @@ export default function Astrologers() {
           )}
         </View>
 
-        {expanded && (
-          <View style={styles.panel} testID="filter-panel">
-            {/* Sort */}
-            <Text style={styles.panelLabel}>Sort by</Text>
-            <View style={styles.segmentRow}>
-              {SORTS.map((s) => {
-                const active = sort === s.key;
-                return (
-                  <Pressable
-                    key={s.key}
-                    testID={`sort-${s.key}`}
-                    onPress={() => { lightHaptic(); setSort(s.key as SortKey); }}
-                    style={[styles.segmentPill, active && styles.segmentPillActive]}
-                  >
-                    <Ionicons name={s.icon} size={13} color={active ? t.color.onBrandPrimary : t.color.onSurfaceSecondary} />
-                    <Text style={[styles.segmentText, active && { color: t.color.onBrandPrimary }]}>{s.label}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            {/* Gender */}
-            <Text style={styles.panelLabel}>Gender</Text>
-            <View style={styles.segmentRow} testID="gender-filter">
-              {GENDERS.map((g) => {
-                const active = gender === g.key;
-                return (
-                  <Pressable
-                    key={g.key}
-                    testID={`gender-${g.key}`}
-                    onPress={() => { lightHaptic(); setGender(g.key as Gender); }}
-                    style={[styles.segmentPill, active && styles.segmentPillActive]}
-                  >
-                    <Ionicons name={g.icon} size={13} color={active ? t.color.onBrandPrimary : t.color.onSurfaceSecondary} />
-                    <Text style={[styles.segmentText, active && { color: t.color.onBrandPrimary }]}>{g.label}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            {/* Language */}
-            <Text style={styles.panelLabel}>Language</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.langRow}>
-              {LANGUAGES.map((l) => {
-                const active = language === l;
-                return (
-                  <Pressable
-                    key={l}
-                    testID={`lang-${l}`}
-                    onPress={() => { lightHaptic(); setLanguage(l); }}
-                    style={[styles.langChip, active && styles.langChipActive]}
-                  >
-                    <Text style={[styles.langText, active && styles.langTextActive]}>{l}</Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-
-            {/* Price range (dual-thumb) */}
-            <View style={styles.priceHeader}>
-              <Text style={styles.panelLabel}>Price range</Text>
-              <Text style={styles.priceValue} testID="price-value">
-                ${price[0]} – {price[1] >= PRICE_MAX ? '$50+' : `$${price[1]}`}/min
-              </Text>
-            </View>
-            <View style={styles.sliderWrap}>
-              <MultiSlider
-                values={price}
-                min={PRICE_MIN}
-                max={PRICE_MAX}
-                step={1}
-                sliderLength={310}
-                onValuesChange={(v) => setPrice([v[0], v[1]] as [number, number])}
-                onValuesChangeFinish={() => lightHaptic()}
-                selectedStyle={{ backgroundColor: t.color.brand, height: 4 }}
-                unselectedStyle={{ backgroundColor: t.color.borderStrong, height: 4 }}
-                markerStyle={{ height: 22, width: 22, backgroundColor: t.color.brand, borderWidth: 2, borderColor: t.color.surface }}
-                pressedMarkerStyle={{ height: 26, width: 26 }}
-                allowOverlap={false}
-                minMarkerOverlapDistance={5}
-                testID="price-slider"
-              />
-            </View>
-            <View style={styles.priceLabels}>
-              <Text style={styles.priceLabelText}>$5</Text>
-              <Text style={styles.priceLabelText}>$50+</Text>
-            </View>
-
-            {/* Free first consult */}
-            <Pressable
-              testID="free-only-toggle"
-              style={[styles.freeToggle, freeOnly && styles.freeToggleActive]}
-              onPress={() => { lightHaptic(); setFreeOnly((v) => !v); }}
-            >
-              <View style={[styles.freeCheckbox, freeOnly && styles.freeCheckboxActive]}>
-                {freeOnly && <Ionicons name="checkmark" size={14} color={t.color.onBrandPrimary} />}
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.freeTitle}>Free first 3 minutes</Text>
-                <Text style={styles.freeSub}>Show astrologers offering a free intro consult for new users</Text>
-              </View>
-              <View style={styles.freeBadge}>
-                <Ionicons name="gift" size={12} color={t.color.brand} />
-                <Text style={styles.freeBadgeText}>NEW</Text>
-              </View>
-            </Pressable>
-          </View>
-        )}
+        {/* (inline panel removed — filter sheet lives at end of render tree) */}
 
         {loading ? (
           <ActivityIndicator color={t.color.brand} style={{ marginTop: 40 }} />
@@ -378,6 +289,133 @@ export default function Astrologers() {
           />
         )}
       </SafeAreaView>
+
+      {/* Filter bottom sheet */}
+      <BottomSheetModal
+        ref={bottomSheetRef}
+        snapPoints={snapPoints}
+        backdropComponent={renderBackdrop}
+        handleIndicatorStyle={{ backgroundColor: t.color.borderStrong, width: 40 }}
+        backgroundStyle={{ backgroundColor: t.color.surfaceSecondary }}
+      >
+        <BottomSheetScrollView contentContainerStyle={styles.sheetContent}>
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sheetTitle}>Filters &amp; sort</Text>
+            <Pressable testID="sheet-close" onPress={closeSheet} hitSlop={10}>
+              <Ionicons name="close" size={22} color={t.color.onSurface} />
+            </Pressable>
+          </View>
+
+          {/* Sort */}
+          <Text style={styles.panelLabel}>Sort by</Text>
+          <View style={styles.sortGrid}>
+            {SORTS.map((s) => {
+              const active = sort === s.key;
+              return (
+                <Pressable
+                  key={s.key}
+                  testID={`sort-${s.key}`}
+                  onPress={() => { lightHaptic(); setSort(s.key as SortKey); }}
+                  style={[styles.sortCard, active && styles.segmentPillActive]}
+                >
+                  <Ionicons name={s.icon} size={16} color={active ? t.color.onBrandPrimary : t.color.brand} />
+                  <Text style={[styles.segmentText, active && { color: t.color.onBrandPrimary }]}>{s.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {/* Gender */}
+          <Text style={styles.panelLabel}>Gender</Text>
+          <View style={styles.segmentRow} testID="gender-filter">
+            {GENDERS.map((g) => {
+              const active = gender === g.key;
+              return (
+                <Pressable
+                  key={g.key}
+                  testID={`gender-${g.key}`}
+                  onPress={() => { lightHaptic(); setGender(g.key as Gender); }}
+                  style={[styles.segmentPill, active && styles.segmentPillActive]}
+                >
+                  <Ionicons name={g.icon} size={13} color={active ? t.color.onBrandPrimary : t.color.onSurfaceSecondary} />
+                  <Text style={[styles.segmentText, active && { color: t.color.onBrandPrimary }]}>{g.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {/* Language */}
+          <Text style={styles.panelLabel}>Language</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.langRow}>
+            {LANGUAGES.map((l) => {
+              const active = language === l;
+              return (
+                <Pressable
+                  key={l}
+                  testID={`lang-${l}`}
+                  onPress={() => { lightHaptic(); setLanguage(l); }}
+                  style={[styles.langChip, active && styles.langChipActive]}
+                >
+                  <Text style={[styles.langText, active && styles.langTextActive]}>{l}</Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+
+          {/* Price range (dual-thumb) */}
+          <View style={styles.priceHeader}>
+            <Text style={styles.panelLabel}>Price range</Text>
+            <Text style={styles.priceValue} testID="price-value">
+              ${price[0]} – {price[1] >= PRICE_MAX ? '$50+' : `$${price[1]}`}/min
+            </Text>
+          </View>
+          <View style={styles.sliderWrap}>
+            <MultiSlider
+              values={price}
+              min={PRICE_MIN}
+              max={PRICE_MAX}
+              step={1}
+              sliderLength={310}
+              onValuesChange={(v) => setPrice([v[0], v[1]] as [number, number])}
+              onValuesChangeFinish={() => lightHaptic()}
+              selectedStyle={{ backgroundColor: t.color.brand, height: 4 }}
+              unselectedStyle={{ backgroundColor: t.color.borderStrong, height: 4 }}
+              markerStyle={{ height: 22, width: 22, backgroundColor: t.color.brand, borderWidth: 2, borderColor: t.color.surface }}
+              pressedMarkerStyle={{ height: 26, width: 26 }}
+              allowOverlap={false}
+              minMarkerOverlapDistance={5}
+              testID="price-slider"
+            />
+          </View>
+          <View style={styles.priceLabels}>
+            <Text style={styles.priceLabelText}>$5</Text>
+            <Text style={styles.priceLabelText}>$50+</Text>
+          </View>
+
+          {/* Free first consult */}
+          <Pressable
+            testID="free-only-toggle"
+            style={[styles.freeToggle, freeOnly && styles.freeToggleActive]}
+            onPress={() => { lightHaptic(); setFreeOnly((v) => !v); }}
+          >
+            <View style={[styles.freeCheckbox, freeOnly && styles.freeCheckboxActive]}>
+              {freeOnly && <Ionicons name="checkmark" size={14} color={t.color.onBrandPrimary} />}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.freeTitle}>Free first 3 minutes</Text>
+              <Text style={styles.freeSub}>Show astrologers offering a free intro consult for new users</Text>
+            </View>
+            <View style={styles.freeBadge}>
+              <Ionicons name="gift" size={12} color={t.color.brand} />
+              <Text style={styles.freeBadgeText}>NEW</Text>
+            </View>
+          </Pressable>
+
+          <Pressable testID="sheet-apply" style={styles.applyBtn} onPress={closeSheet}>
+            <Text style={styles.applyText}>Show {astros.length} result{astros.length === 1 ? '' : 's'}</Text>
+          </Pressable>
+        </BottomSheetScrollView>
+      </BottomSheetModal>
     </View>
   );
 }
@@ -510,5 +548,20 @@ function useStyles() {
     emptySub: { color: t.color.onSurfaceTertiary, textAlign: 'center' },
     emptyBtn: { marginTop: t.spacing.md, backgroundColor: t.color.brand, paddingHorizontal: 20, paddingVertical: 12, borderRadius: t.radius.pill },
     emptyBtnText: { color: t.color.onBrandPrimary, fontWeight: '700' },
+    // Bottom-sheet
+    sheetContent: { padding: t.spacing.xl, paddingBottom: 60, gap: t.spacing.sm },
+    sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: t.spacing.sm },
+    sheetTitle: { color: t.color.onSurface, fontSize: 20, fontFamily: t.font.display },
+    sortGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    sortCard: {
+      flexBasis: '48%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+      gap: 6, paddingVertical: 12, borderRadius: t.radius.md,
+      backgroundColor: t.color.surface, borderWidth: 1, borderColor: t.color.border,
+    },
+    applyBtn: {
+      marginTop: t.spacing.lg, backgroundColor: t.color.brand,
+      paddingVertical: 16, borderRadius: t.radius.pill, alignItems: 'center',
+    },
+    applyText: { color: t.color.onBrandPrimary, fontWeight: '800', fontSize: 15 },
   }), [t]);
 }

@@ -25,6 +25,7 @@ export default function ChatScreen() {
   const [sending, setSending] = useState(false);
   const [walletBalance, setWalletBalance] = useState<number>(user?.wallet_balance ?? 0);
   const [seconds, setSeconds] = useState(0);
+  const [freeLeft, setFreeLeft] = useState<number>(0);
   const [showRating, setShowRating] = useState(false);
   const [rating, setRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
@@ -35,7 +36,7 @@ export default function ChatScreen() {
   const wsRef = useRef<WebSocket | null>(null);
   const listRef = useRef<FlatList>(null);
 
-  useEffect(() => { setWalletBalance(user?.wallet_balance ?? 0); }, [user]);
+  useEffect(() => { setWalletBalance(user?.wallet_balance ?? 0); setFreeLeft((user as any)?.free_messages_remaining ?? 0); }, [user]);
 
   useEffect(() => {
     const timer = setInterval(() => setSeconds((s) => s + 1), 1000);
@@ -63,6 +64,7 @@ export default function ChatScreen() {
             setTyping(false);
             setMessages((m) => [...m, data.message]);
             if (data.wallet_balance !== undefined) setWalletBalance(data.wallet_balance);
+            if (typeof data.free_messages_remaining === 'number') setFreeLeft(data.free_messages_remaining);
           } else if (data.type === 'typing') setTyping(true);
           else if (data.type === 'error') { /* handle later */ }
         } catch {}
@@ -82,7 +84,7 @@ export default function ChatScreen() {
 
   const send = () => {
     if (!text.trim() || !wsRef.current || wsRef.current.readyState !== 1) return;
-    if (astro && walletBalance < astro.price_per_min) return;
+    if (astro && freeLeft <= 0 && walletBalance < astro.price_per_min) return;
     setSending(true);
     wsRef.current.send(JSON.stringify({ text: text.trim() }));
     setText('');
@@ -153,6 +155,12 @@ export default function ChatScreen() {
             <Text style={styles.headerMeta}>{connecting ? 'Connecting…' : `Live · ${mm}:${ss}`}</Text>
           </View>
           <View style={styles.balancePill}><Ionicons name="wallet" size={12} color={t.color.brand} /><Text style={styles.balanceText}>${walletBalance.toFixed(2)}</Text></View>
+          {freeLeft > 0 && (
+            <View style={styles.freePill} testID="chat-free-pill">
+              <Ionicons name="gift" size={12} color={t.color.brand} />
+              <Text style={styles.freePillText}>{freeLeft} free</Text>
+            </View>
+          )}
           <Pressable testID="chat-end-btn" style={styles.endPill} onPress={openEndSession}>
             <Text style={styles.endPillText}>End</Text>
           </Pressable>
@@ -188,10 +196,10 @@ export default function ChatScreen() {
             style={styles.input}
             value={text}
             onChangeText={setText}
-            placeholder={astro && walletBalance < astro.price_per_min ? `Top up to continue (needs $${astro.price_per_min})` : 'Type your message…'}
+            placeholder={astro && freeLeft <= 0 && walletBalance < astro.price_per_min ? `Top up to continue (needs $${astro.price_per_min})` : freeLeft > 0 ? `Free minutes: ${freeLeft} remaining` : 'Type your message…'}
             placeholderTextColor={t.color.muted}
             multiline
-            editable={!astro || walletBalance >= astro.price_per_min}
+            editable={!astro || freeLeft > 0 || walletBalance >= astro.price_per_min}
           />
           <Pressable
             testID="chat-send"
@@ -297,6 +305,8 @@ function useStyles() {
   headerMeta: { color: t.color.brand, fontSize: 12 },
   balancePill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: t.radius.pill, backgroundColor: t.color.brandTertiary },
   balanceText: { color: t.color.brand, fontSize: 12, fontWeight: '700' },
+  freePill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 5, borderRadius: t.radius.pill, backgroundColor: t.color.brand },
+  freePillText: { color: t.color.onBrandPrimary, fontSize: 11, fontWeight: '800' },
   bubbleWrap: { flexDirection: 'row' },
   bubbleLeft: { justifyContent: 'flex-start' },
   bubbleRight: { justifyContent: 'flex-end' },

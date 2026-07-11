@@ -390,7 +390,8 @@ async def auth_google(payload: GoogleAuthPayload):
             "name": data.get('name', ''),
             "picture": data.get('picture', ''),
             "is_admin": email in ADMIN_EMAILS,
-            "wallet_balance": 50.0,  # signup bonus
+            "wallet_balance": 50.0,
+            "free_messages_remaining": 3,  # first 3 messages free
             "created_at": utcnow(),
         })
 
@@ -428,6 +429,7 @@ async def phone_verify(payload: PhoneOtpVerify):
             "picture": "",
             "is_admin": False,
             "wallet_balance": 50.0,
+            "free_messages_remaining": 3,
             "created_at": utcnow(),
         })
     session_token = f"phone_{uuid.uuid4().hex}"
@@ -485,6 +487,22 @@ async def list_astrologers(
 
     cursor = db.astrologers.find(q, {"_id": 0})
     sort_key = (sort or "rating").lower()
+    if sort_key == "trending":
+        # Rank by chats started in the last 7 days.
+        since = utcnow() - timedelta(days=7)
+        agg = [
+            {"$match": {"started_at": {"$gte": since}}},
+            {"$group": {"_id": "$astrologer_id", "recent_chats": {"$sum": 1}}},
+        ]
+        counts_by_id = {row["_id"]: row["recent_chats"] async for row in db.chats.aggregate(agg)}
+        astros = await cursor.to_list(100)
+        for a in astros:
+            a["_trending_score"] = counts_by_id.get(a["astrologer_id"], 0)
+        # Sort by recent chats desc, tie-break on rating & orders
+        astros.sort(key=lambda a: (a["_trending_score"], a.get("rating", 0), a.get("orders", 0)), reverse=True)
+        for a in astros:
+            a["recent_chats_7d"] = a.pop("_trending_score", 0)
+        return astros
     if sort_key == "experience":
         cursor = cursor.sort([("experience_years", -1), ("rating", -1)])
     elif sort_key == "price_asc":
@@ -513,7 +531,8 @@ async def start_chat(astro_id: str, user: dict = Depends(require_user)):
     astro = await db.astrologers.find_one({"astrologer_id": astro_id}, {"_id": 0})
     if not astro:
         raise HTTPException(status_code=404, detail="Astrologer not found")
-    if user['wallet_balance'] < astro['price_per_min']:
+    free_left = int(user.get('free_messages_remaining', 0) or 0)
+    if free_left <= 0 and user['wallet_balance'] < astro['price_per_min']:
         raise HTTPException(status_code=402, detail=f"Insufficient balance. Need at least ${astro['price_per_min']}")
 
     # Reuse open chat if exists
@@ -642,21 +661,41 @@ async def websocket_chat(ws: WebSocket, chat_id: str, token: str = Query(...)):
             if not text:
                 continue
 
-            # deduct wallet per user message (proxy for per-min)
+            # Consume free messages first (first 3 messages ever = free),
+            # then bill per-message from wallet.
             user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
-            if user['wallet_balance'] < astro['price_per_min']:
-                await ws.send_json({"type": "error", "message": "Insufficient balance"})
-                continue
-            new_balance = round(user['wallet_balance'] - astro['price_per_min'], 2)
-            await db.users.update_one({"user_id": user_id}, {"$set": {"wallet_balance": new_balance}})
-            await db.transactions.insert_one({
-                "txn_id": f"txn_{uuid.uuid4().hex[:12]}",
-                "user_id": user_id,
-                "type": "chat",
-                "amount": -astro['price_per_min'],
-                "description": f"Chat with {astro['name']}",
-                "created_at": utcnow(),
-            })
+            free_left = int(user.get('free_messages_remaining', 0) or 0)
+            new_balance = user['wallet_balance']
+            new_free = free_left
+            used_free_this_msg = False
+
+            if free_left > 0:
+                # This message is on the house.
+                new_free = free_left - 1
+                await db.users.update_one({"user_id": user_id}, {"$set": {"free_messages_remaining": new_free}})
+                await db.transactions.insert_one({
+                    "txn_id": f"txn_{uuid.uuid4().hex[:12]}",
+                    "user_id": user_id,
+                    "type": "chat_free",
+                    "amount": 0.0,
+                    "description": f"Free minute with {astro['name']} ({new_free} left)",
+                    "created_at": utcnow(),
+                })
+                used_free_this_msg = True
+            else:
+                if user['wallet_balance'] < astro['price_per_min']:
+                    await ws.send_json({"type": "error", "message": "Insufficient balance"})
+                    continue
+                new_balance = round(user['wallet_balance'] - astro['price_per_min'], 2)
+                await db.users.update_one({"user_id": user_id}, {"$set": {"wallet_balance": new_balance}})
+                await db.transactions.insert_one({
+                    "txn_id": f"txn_{uuid.uuid4().hex[:12]}",
+                    "user_id": user_id,
+                    "type": "chat",
+                    "amount": -astro['price_per_min'],
+                    "description": f"Chat with {astro['name']}",
+                    "created_at": utcnow(),
+                })
 
             user_msg = {
                 "message_id": f"msg_{uuid.uuid4().hex[:12]}",
@@ -668,7 +707,13 @@ async def websocket_chat(ws: WebSocket, chat_id: str, token: str = Query(...)):
             await db.messages.insert_one(dict(user_msg))
             user_msg_out = dict(user_msg)
             user_msg_out['created_at'] = user_msg['created_at'].isoformat()
-            await manager.broadcast(chat_id, {"type": "message", "message": user_msg_out, "wallet_balance": new_balance})
+            await manager.broadcast(chat_id, {
+                "type": "message",
+                "message": user_msg_out,
+                "wallet_balance": new_balance,
+                "free_messages_remaining": new_free,
+                "used_free": used_free_this_msg,
+            })
 
             # typing indicator
             await manager.broadcast(chat_id, {"type": "typing", "sender": "astrologer"})
