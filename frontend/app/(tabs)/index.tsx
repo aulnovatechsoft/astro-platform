@@ -171,8 +171,11 @@ export default function Home() {
 
   const onRefresh = async () => { setRefreshing(true); try { await load(sign); } finally { setRefreshing(false); } };
 
-  const goAstros = (filter?: string) => {
-    router.push('/(tabs)/astrologers');
+  const goAstros = (specialty?: string) => {
+    router.push({
+      pathname: '/(tabs)/astrologers',
+      params: specialty ? { specialty } : {},
+    } as any);
   };
 
   return (

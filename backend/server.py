@@ -129,6 +129,7 @@ SEED_ASTROLOGERS = [
         "bio": "Rowan is an intuitive tarot reader guiding clients through matters of the heart with clarity, warmth, and honesty.",
         "is_online": True,
         "orders": 3210,
+        "first_consult_free": True,
     },
     {
         "astrologer_id": "astro_3",
@@ -159,6 +160,7 @@ SEED_ASTROLOGERS = [
         "bio": "Selene reads palms, faces, and auras with a healer's touch, guiding clients back to their spiritual center.",
         "is_online": True,
         "orders": 2140,
+        "first_consult_free": True,
     },
     {
         "astrologer_id": "astro_5",
@@ -189,6 +191,7 @@ SEED_ASTROLOGERS = [
         "bio": "Iris weaves tarot with dream symbolism to reveal what the subconscious already knows.",
         "is_online": False,
         "orders": 1420,
+        "first_consult_free": True,
     },
     {
         "astrologer_id": "astro_7",
@@ -219,6 +222,7 @@ SEED_ASTROLOGERS = [
         "bio": "Maya combines the intuitive lines of the palm with the precision of numerology to guide you through pivotal decisions.",
         "is_online": True,
         "orders": 2650,
+        "first_consult_free": True,
     },
 ]
 
@@ -455,7 +459,9 @@ async def list_astrologers(
     specialty: Optional[str] = None,
     gender: Optional[str] = None,
     language: Optional[str] = None,
+    min_price: Optional[float] = None,
     max_price: Optional[float] = None,
+    free_only: Optional[bool] = None,
     sort: Optional[str] = None,
 ):
     q: dict = {}
@@ -467,11 +473,17 @@ async def list_astrologers(
     if language and language.lower() != 'all':
         import re as _re
         q["languages"] = {"$regex": f"^{_re.escape(language)}$", "$options": "i"}
+    price_q: dict = {}
+    if min_price is not None and min_price > 0:
+        price_q["$gte"] = min_price
     if max_price is not None and max_price > 0:
-        q["price_per_min"] = {"$lte": max_price}
+        price_q["$lte"] = max_price
+    if price_q:
+        q["price_per_min"] = price_q
+    if free_only:
+        q["first_consult_free"] = True
 
     cursor = db.astrologers.find(q, {"_id": 0})
-    # Sort: rating (default), experience, price_asc, price_desc
     sort_key = (sort or "rating").lower()
     if sort_key == "experience":
         cursor = cursor.sort([("experience_years", -1), ("rating", -1)])

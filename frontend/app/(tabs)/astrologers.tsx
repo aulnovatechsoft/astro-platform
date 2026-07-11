@@ -3,9 +3,9 @@ import { View, Text, StyleSheet, Pressable, FlatList, ScrollView, ActivityIndica
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import Slider from '@react-native-community/slider';
+import MultiSlider from '@ptomasroos/react-native-multi-slider';
 import { api } from '@/src/api';
 import { useTheme } from '@/src/ThemeContext';
 import { storage } from '@/src/utils/storage';
@@ -23,8 +23,9 @@ const SORTS = [
   { key: 'price_asc',  label: 'Price ↑',    icon: 'trending-up' as const },
 ];
 
+const PRICE_MIN = 5;
 const PRICE_MAX = 50;
-const STORAGE_KEY = 'aura_astro_filters_v1';
+const STORAGE_KEY = 'aura_astro_filters_v2';
 
 type Gender = 'all' | 'female' | 'male';
 type SortKey = 'rating' | 'experience' | 'price_asc';
@@ -33,12 +34,14 @@ type PersistedFilters = {
   filter: string;
   gender: Gender;
   language: string;
-  maxPrice: number;
+  price: [number, number];
+  freeOnly: boolean;
   sort: SortKey;
 };
 
 const DEFAULTS: PersistedFilters = {
-  filter: 'All', gender: 'all', language: 'All', maxPrice: PRICE_MAX, sort: 'rating',
+  filter: 'All', gender: 'all', language: 'All',
+  price: [PRICE_MIN, PRICE_MAX], freeOnly: false, sort: 'rating',
 };
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -54,11 +57,13 @@ export default function Astrologers() {
   const t = useTheme();
   const styles = useStyles();
   const router = useRouter();
+  const params = useLocalSearchParams<{ specialty?: string; freeOnly?: string }>();
 
   const [filter, setFilter] = useState<string>(DEFAULTS.filter);
   const [gender, setGender] = useState<Gender>(DEFAULTS.gender);
   const [language, setLanguage] = useState<string>(DEFAULTS.language);
-  const [maxPrice, setMaxPrice] = useState<number>(DEFAULTS.maxPrice);
+  const [price, setPrice] = useState<[number, number]>(DEFAULTS.price);
+  const [freeOnly, setFreeOnly] = useState<boolean>(DEFAULTS.freeOnly);
   const [sort, setSort] = useState<SortKey>(DEFAULTS.sort);
   const [expanded, setExpanded] = useState(false);
   const [hydrated, setHydrated] = useState(false);
@@ -76,7 +81,8 @@ export default function Astrologers() {
           if (p.filter) setFilter(p.filter);
           if (p.gender) setGender(p.gender);
           if (p.language) setLanguage(p.language);
-          if (typeof p.maxPrice === 'number') setMaxPrice(p.maxPrice);
+          if (Array.isArray(p.price) && p.price.length === 2) setPrice([p.price[0], p.price[1]]);
+          if (typeof p.freeOnly === 'boolean') setFreeOnly(p.freeOnly);
           if (p.sort) setSort(p.sort);
         } catch {}
       }
@@ -84,45 +90,63 @@ export default function Astrologers() {
     })();
   }, []);
 
-  // Save filters whenever they change (after hydration)
+  // Deep-link overrides: applied AFTER hydration
   useEffect(() => {
     if (!hydrated) return;
-    const payload: PersistedFilters = { filter, gender, language, maxPrice, sort };
-    storage.setItem(STORAGE_KEY, JSON.stringify(payload));
-  }, [hydrated, filter, gender, language, maxPrice, sort]);
+    if (params.specialty && FILTERS.includes(String(params.specialty))) {
+      setFilter(String(params.specialty));
+    }
+    if (params.freeOnly === 'true') {
+      setFreeOnly(true);
+      setExpanded(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, params.specialty, params.freeOnly]);
 
-  // Fetch astrologers
+  // Persist
+  useEffect(() => {
+    if (!hydrated) return;
+    const payload: PersistedFilters = { filter, gender, language, price, freeOnly, sort };
+    storage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  }, [hydrated, filter, gender, language, price, freeOnly, sort]);
+
+  // Fetch
   useEffect(() => {
     if (!hydrated) return;
     setLoading(true);
-    const params = new URLSearchParams();
-    if (filter !== 'All') params.set('specialty', filter);
-    if (gender !== 'all') params.set('gender', gender);
-    if (language !== 'All') params.set('language', language);
-    if (maxPrice < PRICE_MAX) params.set('max_price', String(maxPrice));
-    if (sort !== 'rating') params.set('sort', sort);
-    const qs = params.toString();
-    api.get(`/api/astrologers${qs ? `?${qs}` : ''}`)
+    const qs = new URLSearchParams();
+    if (filter !== 'All') qs.set('specialty', filter);
+    if (gender !== 'all') qs.set('gender', gender);
+    if (language !== 'All') qs.set('language', language);
+    if (price[0] > PRICE_MIN) qs.set('min_price', String(price[0]));
+    if (price[1] < PRICE_MAX) qs.set('max_price', String(price[1]));
+    if (freeOnly) qs.set('free_only', 'true');
+    if (sort !== 'rating') qs.set('sort', sort);
+    const s = qs.toString();
+    api.get(`/api/astrologers${s ? `?${s}` : ''}`)
       .then(setAstros)
       .finally(() => setLoading(false));
-  }, [hydrated, filter, gender, language, maxPrice, sort]);
+  }, [hydrated, filter, gender, language, price, freeOnly, sort]);
 
   const activeExtra =
     (gender !== 'all' ? 1 : 0) +
     (language !== 'All' ? 1 : 0) +
-    (maxPrice < PRICE_MAX ? 1 : 0) +
+    (price[0] > PRICE_MIN || price[1] < PRICE_MAX ? 1 : 0) +
+    (freeOnly ? 1 : 0) +
     (sort !== 'rating' ? 1 : 0);
 
   const resetAll = useCallback(() => {
     lightHaptic();
     setFilter(DEFAULTS.filter); setGender(DEFAULTS.gender); setLanguage(DEFAULTS.language);
-    setMaxPrice(DEFAULTS.maxPrice); setSort(DEFAULTS.sort);
+    setPrice(DEFAULTS.price); setFreeOnly(DEFAULTS.freeOnly); setSort(DEFAULTS.sort);
   }, []);
 
   const toggleExpand = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setExpanded((e) => !e);
   };
+
+  const currentSortLabel = SORTS.find((s) => s.key === sort)?.label || 'Top rated';
 
   return (
     <View style={styles.root}>
@@ -134,11 +158,7 @@ export default function Astrologers() {
 
         {/* Specialty chip row */}
         <View style={styles.filterRow}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filterContent}
-          >
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterContent}>
             {FILTERS.map((f) => (
               <Pressable
                 key={f}
@@ -152,29 +172,28 @@ export default function Astrologers() {
           </ScrollView>
         </View>
 
-        {/* Extended filters toggle */}
-        <Pressable
-          testID="expand-filters"
-          style={styles.expandBar}
-          onPress={toggleExpand}
-        >
-          <Ionicons name="options-outline" size={16} color={t.color.brand} />
-          <Text style={styles.expandText}>Filters &amp; sort</Text>
+        {/* Expand bar + compact sort pill */}
+        <View style={styles.controlBar}>
+          <Pressable testID="expand-filters" style={styles.expandBtn} onPress={toggleExpand}>
+            <Ionicons name="options-outline" size={16} color={t.color.brand} />
+            <Text style={styles.expandText}>Filters</Text>
+            {activeExtra > 0 && (
+              <View style={styles.badge}><Text style={styles.badgeText}>{activeExtra}</Text></View>
+            )}
+            <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={14} color={t.color.onSurfaceTertiary} />
+          </Pressable>
+
+          <Pressable testID="sort-quick-pill" style={styles.sortQuickPill} onPress={toggleExpand}>
+            <Ionicons name="swap-vertical" size={14} color={t.color.onSurface} />
+            <Text style={styles.sortQuickText}>Sort · {currentSortLabel}</Text>
+          </Pressable>
+
           {activeExtra > 0 && (
-            <View style={styles.badge}><Text style={styles.badgeText}>{activeExtra}</Text></View>
-          )}
-          <View style={{ flex: 1 }} />
-          {activeExtra > 0 && (
-            <Pressable testID="clear-filters" onPress={resetAll} hitSlop={8}>
+            <Pressable testID="clear-filters" onPress={resetAll} hitSlop={8} style={styles.clearBtn}>
               <Text style={styles.clearText}>Clear</Text>
             </Pressable>
           )}
-          <Ionicons
-            name={expanded ? 'chevron-up' : 'chevron-down'}
-            size={16}
-            color={t.color.onSurfaceTertiary}
-          />
-        </Pressable>
+        </View>
 
         {expanded && (
           <View style={styles.panel} testID="filter-panel">
@@ -218,11 +237,7 @@ export default function Astrologers() {
 
             {/* Language */}
             <Text style={styles.panelLabel}>Language</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.langRow}
-            >
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.langRow}>
               {LANGUAGES.map((l) => {
                 const active = language === l;
                 return (
@@ -238,30 +253,54 @@ export default function Astrologers() {
               })}
             </ScrollView>
 
-            {/* Price */}
+            {/* Price range (dual-thumb) */}
             <View style={styles.priceHeader}>
-              <Text style={styles.panelLabel}>Max price</Text>
+              <Text style={styles.panelLabel}>Price range</Text>
               <Text style={styles.priceValue} testID="price-value">
-                {maxPrice >= PRICE_MAX ? 'Any' : `$${Math.round(maxPrice)}/min`}
+                ${price[0]} – {price[1] >= PRICE_MAX ? '$50+' : `$${price[1]}`}/min
               </Text>
             </View>
-            <Slider
-              testID="price-slider"
-              style={styles.slider}
-              minimumValue={5}
-              maximumValue={PRICE_MAX}
-              step={1}
-              value={maxPrice}
-              onValueChange={setMaxPrice}
-              onSlidingComplete={() => lightHaptic()}
-              minimumTrackTintColor={t.color.brand}
-              maximumTrackTintColor={t.color.borderStrong}
-              thumbTintColor={t.color.brand}
-            />
+            <View style={styles.sliderWrap}>
+              <MultiSlider
+                values={price}
+                min={PRICE_MIN}
+                max={PRICE_MAX}
+                step={1}
+                sliderLength={310}
+                onValuesChange={(v) => setPrice([v[0], v[1]] as [number, number])}
+                onValuesChangeFinish={() => lightHaptic()}
+                selectedStyle={{ backgroundColor: t.color.brand, height: 4 }}
+                unselectedStyle={{ backgroundColor: t.color.borderStrong, height: 4 }}
+                markerStyle={{ height: 22, width: 22, backgroundColor: t.color.brand, borderWidth: 2, borderColor: t.color.surface }}
+                pressedMarkerStyle={{ height: 26, width: 26 }}
+                allowOverlap={false}
+                minMarkerOverlapDistance={5}
+                testID="price-slider"
+              />
+            </View>
             <View style={styles.priceLabels}>
               <Text style={styles.priceLabelText}>$5</Text>
-              <Text style={styles.priceLabelText}>${PRICE_MAX}+</Text>
+              <Text style={styles.priceLabelText}>$50+</Text>
             </View>
+
+            {/* Free first consult */}
+            <Pressable
+              testID="free-only-toggle"
+              style={[styles.freeToggle, freeOnly && styles.freeToggleActive]}
+              onPress={() => { lightHaptic(); setFreeOnly((v) => !v); }}
+            >
+              <View style={[styles.freeCheckbox, freeOnly && styles.freeCheckboxActive]}>
+                {freeOnly && <Ionicons name="checkmark" size={14} color={t.color.onBrandPrimary} />}
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.freeTitle}>Free first 3 minutes</Text>
+                <Text style={styles.freeSub}>Show astrologers offering a free intro consult for new users</Text>
+              </View>
+              <View style={styles.freeBadge}>
+                <Ionicons name="gift" size={12} color={t.color.brand} />
+                <Text style={styles.freeBadgeText}>NEW</Text>
+              </View>
+            </Pressable>
           </View>
         )}
 
@@ -278,7 +317,8 @@ export default function Astrologers() {
                 {filter !== 'All' ? ` · ${filter}` : ''}
                 {gender !== 'all' ? ` · ${gender === 'female' ? 'Female' : 'Male'}` : ''}
                 {language !== 'All' ? ` · ${language}` : ''}
-                {maxPrice < PRICE_MAX ? ` · ≤ $${Math.round(maxPrice)}` : ''}
+                {(price[0] > PRICE_MIN || price[1] < PRICE_MAX) ? ` · $${price[0]}-${price[1] >= PRICE_MAX ? '50+' : '$' + price[1]}` : ''}
+                {freeOnly ? ' · Free' : ''}
               </Text>
             }
             ListEmptyComponent={
@@ -310,6 +350,12 @@ export default function Astrologers() {
                         size={12}
                         color={t.color.onSurfaceTertiary}
                       />
+                    )}
+                    {item.first_consult_free && (
+                      <View style={styles.cardFreeChip}>
+                        <Ionicons name="gift" size={10} color={t.color.brand} />
+                        <Text style={styles.cardFreeText}>Free 3m</Text>
+                      </View>
                     )}
                   </View>
                   <Text style={styles.specs} numberOfLines={1}>{item.specialties.join(' · ')}</Text>
@@ -354,18 +400,30 @@ function useStyles() {
     chipActive: { backgroundColor: t.color.brand, borderColor: t.color.brand },
     chipText: { color: t.color.onSurfaceSecondary, fontSize: 13, fontWeight: '600' },
     chipTextActive: { color: t.color.onBrandPrimary },
-    expandBar: {
+    controlBar: {
       flexDirection: 'row', alignItems: 'center', gap: 8,
-      paddingHorizontal: t.spacing.xl, paddingVertical: t.spacing.md,
+      paddingHorizontal: t.spacing.xl, paddingVertical: 10,
       borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: t.color.border,
     },
-    expandText: { color: t.color.onSurface, fontSize: 14, fontWeight: '700' },
+    expandBtn: {
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      paddingHorizontal: 12, paddingVertical: 8, borderRadius: t.radius.pill,
+      borderWidth: 1, borderColor: t.color.borderStrong,
+    },
+    expandText: { color: t.color.onSurface, fontSize: 13, fontWeight: '700' },
     badge: {
-      minWidth: 20, height: 20, paddingHorizontal: 6, borderRadius: 10,
+      minWidth: 18, height: 18, paddingHorizontal: 5, borderRadius: 9,
       backgroundColor: t.color.brand, alignItems: 'center', justifyContent: 'center',
     },
-    badgeText: { color: t.color.onBrandPrimary, fontSize: 11, fontWeight: '800' },
-    clearText: { color: t.color.brand, fontSize: 12, fontWeight: '700', marginRight: 6 },
+    badgeText: { color: t.color.onBrandPrimary, fontSize: 10, fontWeight: '800' },
+    sortQuickPill: {
+      flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6,
+      paddingHorizontal: 12, paddingVertical: 8, borderRadius: t.radius.pill,
+      backgroundColor: t.color.surfaceSecondary, borderWidth: 1, borderColor: t.color.border,
+    },
+    sortQuickText: { color: t.color.onSurface, fontSize: 12, fontWeight: '600', flexShrink: 1 },
+    clearBtn: { paddingHorizontal: 8, paddingVertical: 6 },
+    clearText: { color: t.color.brand, fontSize: 12, fontWeight: '700' },
     panel: {
       paddingHorizontal: t.spacing.xl, paddingVertical: t.spacing.md, gap: t.spacing.sm,
       backgroundColor: t.color.surfaceSecondary,
@@ -395,9 +453,32 @@ function useStyles() {
     langTextActive: { color: t.color.onBrandPrimary },
     priceHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
     priceValue: { color: t.color.brand, fontSize: 14, fontWeight: '800' },
-    slider: { width: '100%', height: 32, marginTop: -6 },
+    sliderWrap: { alignItems: 'center', height: 36, justifyContent: 'center' },
     priceLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: -6 },
     priceLabelText: { color: t.color.onSurfaceTertiary, fontSize: 10 },
+    freeToggle: {
+      marginTop: 10,
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      padding: 12,
+      borderRadius: t.radius.md,
+      backgroundColor: t.color.surface,
+      borderWidth: 1, borderColor: t.color.border,
+    },
+    freeToggleActive: { borderColor: t.color.brand, backgroundColor: t.color.brandTertiary },
+    freeCheckbox: {
+      width: 22, height: 22, borderRadius: 6,
+      borderWidth: 2, borderColor: t.color.borderStrong,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    freeCheckboxActive: { backgroundColor: t.color.brand, borderColor: t.color.brand },
+    freeTitle: { color: t.color.onSurface, fontSize: 14, fontWeight: '700' },
+    freeSub: { color: t.color.onSurfaceTertiary, fontSize: 11, marginTop: 2 },
+    freeBadge: {
+      flexDirection: 'row', alignItems: 'center', gap: 4,
+      paddingHorizontal: 8, paddingVertical: 4, borderRadius: t.radius.pill,
+      backgroundColor: t.color.brandTertiary,
+    },
+    freeBadgeText: { color: t.color.brand, fontSize: 10, fontWeight: '800', letterSpacing: 0.8 },
     resultsCount: { color: t.color.onSurfaceTertiary, fontSize: 12, marginBottom: t.spacing.md, letterSpacing: 0.4 },
     card: {
       flexDirection: 'row', gap: t.spacing.md, alignItems: 'center',
@@ -406,8 +487,14 @@ function useStyles() {
     },
     avatar: { width: 64, height: 64, borderRadius: t.radius.md },
     dot: { position: 'absolute', top: -2, right: -2, width: 12, height: 12, borderRadius: 6, backgroundColor: t.color.success, borderWidth: 2, borderColor: t.color.surfaceSecondary },
-    nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
     name: { color: t.color.onSurface, fontWeight: '700', fontSize: 16, flexShrink: 1 },
+    cardFreeChip: {
+      flexDirection: 'row', alignItems: 'center', gap: 3,
+      paddingHorizontal: 6, paddingVertical: 2, borderRadius: t.radius.pill,
+      backgroundColor: t.color.brandTertiary,
+    },
+    cardFreeText: { color: t.color.brand, fontSize: 9, fontWeight: '800', letterSpacing: 0.4 },
     specs: { color: t.color.brand, fontSize: 12, marginTop: 2 },
     langs: { color: t.color.onSurfaceTertiary, fontSize: 11, marginTop: 2 },
     metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
