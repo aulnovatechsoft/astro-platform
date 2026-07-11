@@ -1,0 +1,199 @@
+{
+  "app_name": "Aura",
+  "personality": "6 Glass / Luxe DARK",
+  "personality_one_liner": "A premium, mindfulness-inspired spiritual guidance space where users connect with elite astrologers and track their celestial journey.",
+  "color": {
+    "surface": "#0F0E0D",
+    "onSurface": "#F7F5F0",
+    "surfaceSecondary": "#1C1A18",
+    "onSurfaceSecondary": "#DCD6CC",
+    "surfaceTertiary": "#2B2824",
+    "onSurfaceTertiary": "#A8A39C",
+    "surfaceInverse": "#F7F5F0",
+    "onSurfaceInverse": "#0F0E0D",
+    "brand": "#D6A848",
+    "brandPrimary": "#D6A848",
+    "onBrandPrimary": "#1A1405",
+    "brandSecondary": "#B28B38",
+    "onBrandSecondary": "#1A1405",
+    "brandTertiary": "#332917",
+    "onBrandTertiary": "#D6A848",
+    "success": "#3E6649",
+    "onSuccess": "#E3F0E6",
+    "warning": "#C27A2F",
+    "onWarning": "#F5E3D1",
+    "error": "#9E3E3E",
+    "onError": "#F0E3E3",
+    "info": "#66635D",
+    "onInfo": "#E6E3DD",
+    "border": "#2B2824",
+    "borderStrong": "#4A453F",
+    "divider": "#1F1D1A"
+  },
+  "typography": {
+    "displayFontFamily": "Fraunces",
+    "textFontFamily": "Satoshi",
+    "scale": {
+      "sm": 12,
+      "base": 14,
+      "lg": 16,
+      "xl": 20,
+      "2xl": 24
+    }
+  },
+  "spacing": {
+    "rule": "Generous vertical breathing room. Empty space is intentional. Follow the exact scale, no custom margins outside these steps.",
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48
+  },
+  "radius_tokens": {
+    "sm": 6,
+    "md": 12,
+    "lg": 20,
+    "pill": 999
+  },
+  "shadow_tier": "0",
+  "navigation": "bottom_tabs",
+  "icon_set": "Phosphor",
+  "glassmorphism": {
+    "enabled": true,
+    "do's": [
+      "Use frosted glass on the bottom tab bar.",
+      "Use frosted glass overlays on hero cards (Daily Insight).",
+      "Apply translucent tinted base (≥75% surface) under blur for text readability."
+    ],
+    "dont's": [
+      "Do not blur form fields or body text regions.",
+      "Do not apply glass to every single list row.",
+      "Do not stack more than two blur surfaces per screen."
+    ]
+  },
+  "platform_libraries": {
+    "glass": {
+      "ios": "expo-glass-effect",
+      "android": "expo-blur",
+      "low_end_android_fallback": "solid surfaceSecondary"
+    },
+    "image": "expo-image",
+    "blur": "expo-blur",
+    "bottom_sheet": "@gorhom/bottom-sheet",
+    "animation": "react-native-reanimated",
+    "gesture": "react-native-gesture-handler"
+  },
+  "screens": [
+    {
+      "name": "Onboarding / Login",
+      "purpose": "Set the mystical, premium tone and authenticate the user via Google/Phone.",
+      "states": {
+        "loading": "Centered sleek spinner over the dark gold abstract background.",
+        "empty": "N/A",
+        "error": "Standard toast utilizing error token."
+      },
+      "layout": "Full-bleed abstract background image with a vertical gradient scrim (transparent to ≥80% surfaceInverse mapping down to surface at the bottom). 'Aura' logo in large Fraunces font centered. Glassmorphic login buttons at the bottom thumb zone."
+    },
+    {
+      "name": "Home",
+      "purpose": "A streaming-style feed providing daily insights and quick actions to core features.",
+      "states": {
+        "loading": "Skeleton cards pulsing subtly in surfaceSecondary.",
+        "empty": "N/A",
+        "error": "Error message with 'Retry' button filling the viewport."
+      },
+      "layout": "Header with user greeting and Wallet balance/icon. Hero Card: 'Daily Moon Phase Insight' using moon phase background with glassmorphic overlay and typography in Fraunces. Quick Actions: 2x2 grid of uniform cards for Chat, Call, Tarot, Kundli. Section: 'Elite Astrologers' horizontal scroll showing photos, names, and ratings."
+    },
+    {
+      "name": "Astrologer List",
+      "purpose": "Marketplace directory connecting users with astrologers, featuring filters and live availability.",
+      "states": {
+        "loading": "List of skeleton rows.",
+        "empty": "Illustration of an empty night sky with 'No astrologers match your filter.'",
+        "error": "Error fetching astrologers prompt."
+      },
+      "layout": "Sticky glass header with a segmented control/filter row (All, Vedic, Tarot). Vertical list of astrologer cards. Each card contains a leading photo (real portrait), name, rating, specialties, price/min, and primary 'Chat'/'Call' pill button."
+    },
+    {
+      "name": "Astrologer Detail",
+      "purpose": "Deep-dive profile of the astrologer's expertise, bio, and reviews to drive booking.",
+      "states": {
+        "loading": "Skeleton UI over surface.",
+        "empty": "N/A",
+        "error": "Error loading profile prompt."
+      },
+      "layout": "Full-bleed cover photo of the astrologer with a top-to-bottom gradient scrim. The content below slides up over the image on scroll. Content includes Fraunces display name, metrics row (Experience, Orders, Rating), deep bio, and reviews. Sticky bottom CTA anchored above the safe area: 'Start Chat - $2/min'."
+    },
+    {
+      "name": "Chat Session",
+      "purpose": "Real-time consultation interface (mocked AI responses).",
+      "states": {
+        "loading": "Connecting to astrologer...",
+        "empty": "N/A",
+        "error": "Connection lost prompt."
+      },
+      "layout": "Sticky glass header with astrologer name and active timer. Dark chat area (surface). User bubbles in surfaceSecondary, Astrologer bubbles in brandTertiary. Floating text input anchored at bottom."
+    },
+    {
+      "name": "Call Session",
+      "purpose": "Mocked UI for active voice/video consultation.",
+      "states": {
+        "loading": "Ringing...",
+        "empty": "N/A",
+        "error": "Call failed."
+      },
+      "layout": "Full-bleed portrait of the astrologer, heavily blurred with a dark 80% surface scrim. Large centered profile picture, duration timer in Fraunces. Large glassmorphic circular buttons at the bottom for Mute, Speaker, and End Call (End call in error tone)."
+    },
+    {
+      "name": "Wallet",
+      "purpose": "Handle user balance and transaction history.",
+      "states": {
+        "loading": "Skeleton balance.",
+        "empty": "Empty state illustration of a minimalist wallet with 'No transactions yet.'",
+        "error": "Failed to load wallet."
+      },
+      "layout": "Large typographic balance display centered at the top. Grid of 'Add Money' quick amounts (e.g., $10, $20, $50). List of recent transactions below."
+    },
+    {
+      "name": "Kundli / Horoscope",
+      "purpose": "Provide birth chart details and daily zodiac readings.",
+      "states": {
+        "loading": "Calculating alignment...",
+        "empty": "Prompt to 'Enter Birth Details'.",
+        "error": "Calculation failed."
+      },
+      "layout": "Hero section showing user's Zodiac sign. Interactive or static stylized Birth Chart visualization. Layered cards detailing planetary positions and daily insights."
+    }
+  ],
+  "images": {
+    "onboarding_bg": {
+      "url": "https://images.unsplash.com/photo-1778660825961-723f13715a79?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NzV8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMHNwaXJpdHVhbCUyMGF1cmElMjBkYXJrJTIwZ29sZHxlbnwwfHx8fDE3ODM3MzA2NTl8MA&ixlib=rb-4.1.0&q=85",
+      "dark": "https://images.unsplash.com/photo-1778660825961-723f13715a79?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NzV8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMHNwaXJpdHVhbCUyMGF1cmElMjBkYXJrJTIwZ29sZHxlbnwwfHx8fDE3ODM3MzA2NTl8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Abstract golden swirls and lines on black background"
+    },
+    "hero_moon_phase": {
+      "url": "https://images.unsplash.com/photo-1527842891421-42eec6e703ea?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Njl8MHwxfHNlYXJjaHwxfHxtb29uJTIwcGhhc2UlMjBkYXJrJTIwYWVzdGhldGljfGVufDB8fHx8MTc4MzczMDY1OXww&ixlib=rb-4.1.0&q=85",
+      "dark": "https://images.unsplash.com/photo-1527842891421-42eec6e703ea?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Njl8MHwxfHNlYXJjaHwxfHxtb29uJTIwcGhhc2UlMjBkYXJrJTIwYWVzdGhldGljfGVufDB8fHx8MTc4MzczMDY1OXww&ixlib=rb-4.1.0&q=85",
+      "alt": "closeup photography of crescent moon"
+    },
+    "astrologer_1": {
+      "url": "https://images.unsplash.com/photo-1773595034105-4a53b9280308?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NDh8MHwxfHNlYXJjaHwzfHxhc3Ryb2xvZ2VyJTIwd29tYW4lMjBwb3J0cmFpdHxlbnwwfHx8fDE3ODM3MzA2NTl8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Woman with elaborate makeup and jewelry"
+    },
+    "astrologer_2": {
+      "url": "https://images.unsplash.com/photo-1628479941723-0859e4b844c6?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODF8MHwxfHNlYXJjaHwyfHx0YXJvdCUyMHJlYWRlciUyMHBvcnRyYWl0fGVufDB8fHx8MTc4MzczMDY1OXww&ixlib=rb-4.1.0&q=85",
+      "alt": "Tarot reader portrait"
+    }
+  },
+  "instructions_to_main_agent": [
+    "Adhere strictly to the '6 Glass / Luxe DARK' personality. The app should feel like a premium spiritual guidance space (e.g., Netflix for spirituality or mindfulness apps like Calm), not a cheap crystal shop.",
+    "Do NOT use indigo, purple, magenta, or navy blue anywhere. Follow the provided color palette mapping to midnight blacks, charcoal, and antique gold (#D6A848).",
+    "Always apply a vertical gradient scrim (transparent to ≥80% surface opacity) when overlaying text on images like the hero card or onboarding screen to ensure AAA contrast.",
+    "For the bottom tabs, use Phosphor icons with the following mapping: Home (house), Astrologers (sparkle), Chat (chat-teardrop), Kundli (moon). Maintain one icon weight across the app.",
+    "Implement the 'Sticky primary CTA' pattern strictly on the Astrologer Detail screen (e.g., 'Start Chat'). It must sit over a glass or solid surface background outside the scrolling scrollview.",
+    "Avoid heavy borders or solid white backgrounds. Keep the UI atmospheric and cinematic.",
+    "Ensure 'Admin / Announcements banner' drops down dynamically via reanimated over the Home screen."
+  ]
+}
