@@ -35,7 +35,8 @@ type Ctx = {
 const ThemeCtx = createContext<Ctx>({} as any);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [themeName, setThemeNameState] = useState<ThemeName>('luxe');
+  // Default to the Ivory (warm-minimal light) theme; existing users keep their stored choice.
+  const [themeName, setThemeNameState] = useState<ThemeName>('light');
 
   useEffect(() => { (async () => { const s = await loadStored(); if (s && THEMES[s]) setThemeNameState(s); })(); }, []);
 

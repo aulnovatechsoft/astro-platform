@@ -38,7 +38,7 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: ({ color, size }) => <Ionicons name="home" color={color} size={size} /> }} />
-      <Tabs.Screen name="astrologers" options={{ title: 'Astrologers', tabBarIcon: ({ color, size }) => <Ionicons name="sparkles" color={color} size={size} /> }} />
+      <Tabs.Screen name="astrologers" options={{ title: 'Astrologers', tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="crystal-ball" color={color} size={size} /> }} />
       <Tabs.Screen name="chats" options={{ title: 'Chats', tabBarIcon: ({ color, size }) => <Ionicons name="chatbubbles" color={color} size={size} /> }} />
       <Tabs.Screen name="remedies" options={{ title: 'Remedies', tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="hands-pray" color={color} size={size} /> }} />
       <Tabs.Screen name="kundli" options={{ href: null, title: 'Kundli' }} />

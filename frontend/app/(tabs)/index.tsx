@@ -273,10 +273,10 @@ export default function Home() {
                   style={StyleSheet.absoluteFill}
                 />
                 {/* Decorative moon on the right — contained, not overlapping text */}
-                <View style={styles.heroMoonWrap} pointerEvents="none">
+                <View style={[styles.heroMoonWrap, { opacity: t.isDark ? 0.35 : 0.15 }]} pointerEvents="none">
                   <Image source={MOON_BG} style={styles.heroMoon} contentFit="cover" />
                   <LinearGradient
-                    colors={['transparent', 'rgba(0,0,0,0.55)']}
+                    colors={t.isDark ? ['transparent', 'rgba(0,0,0,0.55)'] : ['transparent', 'rgba(255,255,255,0.6)']}
                     style={StyleSheet.absoluteFill}
                   />
                 </View>
@@ -654,7 +654,7 @@ function useStyles() {
   heroElBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 9, paddingVertical: 4, borderRadius: t.radius.pill,
-    backgroundColor: 'rgba(0,0,0,0.28)',
+    backgroundColor: t.isDark ? 'rgba(0,0,0,0.28)' : t.color.brandTertiary,
     borderWidth: StyleSheet.hairlineWidth,
   },
   heroElDot: { width: 6, height: 6, borderRadius: 3 },
@@ -673,7 +673,7 @@ function useStyles() {
     width: 56, height: 56, borderRadius: 28,
     borderWidth: 2, borderColor: t.color.brand,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: t.isDark ? 'rgba(0,0,0,0.35)' : t.color.brandTertiary,
   },
   energyVal: { color: t.color.brand, fontSize: 18, fontWeight: '800', lineHeight: 20 },
   energyKey: { color: t.color.onSurfaceTertiary, fontSize: 7, letterSpacing: 0.8, fontWeight: '700', marginTop: 1 },
@@ -685,18 +685,18 @@ function useStyles() {
   metricVal: { color: t.color.brand, fontSize: 11, fontWeight: '800' },
   metricTrack: {
     height: 4, borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.06)', overflow: 'hidden',
+    backgroundColor: t.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)', overflow: 'hidden',
   },
   metricFill: { height: '100%', backgroundColor: t.color.brand, borderRadius: 2 },
   luckyGrid: {
     flexDirection: 'row', alignItems: 'stretch',
-    backgroundColor: 'rgba(0,0,0,0.28)',
+    backgroundColor: t.isDark ? 'rgba(0,0,0,0.28)' : t.color.brandTertiary,
     borderRadius: t.radius.md,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(214,168,72,0.25)',
+    borderWidth: StyleSheet.hairlineWidth, borderColor: t.color.brandSecondary,
     paddingVertical: 8,
   },
   luckyCell: { flex: 1, alignItems: 'center', paddingHorizontal: 4, gap: 2 },
-  luckyDivider: { width: StyleSheet.hairlineWidth, backgroundColor: 'rgba(214,168,72,0.28)', marginVertical: 6 },
+  luckyDivider: { width: StyleSheet.hairlineWidth, backgroundColor: t.color.brandSecondary, marginVertical: 6 },
   luckyKey: { color: t.color.onSurfaceTertiary, fontSize: 9, letterSpacing: 0.8, fontWeight: '700' },
   luckyVal: { color: t.color.brand, fontSize: 12, fontWeight: '800' },
   heroCta: {
@@ -780,7 +780,7 @@ function useStyles() {
     width: 62, height: 62, borderRadius: 10,
     borderWidth: 1, borderColor: t.color.brand,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.2)',
+    backgroundColor: t.isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.55)',
   },
   tarotBackGlyph: { color: t.color.brand, fontSize: 30, lineHeight: 34 },
   tarotBackLabel: {
