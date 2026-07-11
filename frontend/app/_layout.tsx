@@ -9,6 +9,11 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useIconFonts } from "@/src/hooks/use-icon-fonts";
 import { AuthProvider, useAuth } from '@/src/AuthContext';
 import { ThemeProvider, useTheme } from '@/src/ThemeContext';
+import { installFontTimeoutShim } from '@/src/utils/fontTimeoutShim';
+
+// Silence the noisy `6000ms timeout exceeded` rejection from expo-font's web
+// fontfaceobserver wrapper. Runs at import time so it beats any Icon mount.
+installFontTimeoutShim();
 
 LogBox.ignoreAllLogs(true);
 SplashScreen.preventAutoHideAsync();
