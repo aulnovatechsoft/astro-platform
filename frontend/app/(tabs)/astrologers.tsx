@@ -1,15 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, FlatList, ScrollView, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { theme } from '@/src/theme';
 import { api } from '@/src/api';
+import { useTheme } from '@/src/ThemeContext';
 
 const FILTERS = ['All', 'Vedic', 'Tarot', 'Numerology', 'Palmistry', 'KP System'];
 
 export default function Astrologers() {
+  const t = useTheme();
+  const styles = useStyles();
   const router = useRouter();
   const [filter, setFilter] = useState('All');
   const [astros, setAstros] = useState<any[]>([]);
@@ -50,12 +52,12 @@ export default function Astrologers() {
         </View>
 
         {loading ? (
-          <ActivityIndicator color={theme.color.brand} style={{ marginTop: 40 }} />
+          <ActivityIndicator color={t.color.brand} style={{ marginTop: 40 }} />
         ) : (
           <FlatList
             data={astros}
             keyExtractor={(i) => i.astrologer_id}
-            contentContainerStyle={{ padding: theme.spacing.xl, paddingBottom: 120, gap: theme.spacing.md }}
+            contentContainerStyle={{ padding: t.spacing.xl, paddingBottom: 120, gap: t.spacing.md }}
             ListEmptyComponent={<Text style={styles.empty}>No astrologers match this filter.</Text>}
             renderItem={({ item }) => (
               <Pressable
@@ -72,7 +74,7 @@ export default function Astrologers() {
                   <Text style={styles.specs} numberOfLines={1}>{item.specialties.join(' · ')}</Text>
                   <Text style={styles.langs} numberOfLines={1}>{item.languages.join(', ')} · {item.experience_years}y exp</Text>
                   <View style={styles.metaRow}>
-                    <Ionicons name="star" size={12} color={theme.color.brand} />
+                    <Ionicons name="star" size={12} color={t.color.brand} />
                     <Text style={styles.rating}>{item.rating.toFixed(1)}</Text>
                     <Text style={styles.orders}>({item.reviews_count.toLocaleString()})</Text>
                   </View>
@@ -93,42 +95,47 @@ export default function Astrologers() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: theme.color.surface },
-  headerWrap: { paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md, paddingBottom: theme.spacing.md },
-  title: { color: theme.color.onSurface, fontSize: 30, fontFamily: theme.font.display },
-  subtitle: { color: theme.color.onSurfaceTertiary, marginTop: 4 },
-  filterRow: { height: 56, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.color.border, justifyContent: 'center' },
-  filterContent: { gap: theme.spacing.sm, paddingHorizontal: theme.spacing.xl, alignItems: 'center' },
+function useStyles() {
+  const t = useTheme();
+  return useMemo(() => (
+    StyleSheet.create({
+  root: { flex: 1, backgroundColor: t.color.surface },
+  headerWrap: { paddingHorizontal: t.spacing.xl, paddingTop: t.spacing.md, paddingBottom: t.spacing.md },
+  title: { color: t.color.onSurface, fontSize: 30, fontFamily: t.font.display },
+  subtitle: { color: t.color.onSurfaceTertiary, marginTop: 4 },
+  filterRow: { height: 56, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: t.color.border, justifyContent: 'center' },
+  filterContent: { gap: t.spacing.sm, paddingHorizontal: t.spacing.xl, alignItems: 'center' },
   chip: {
     height: 36,
     paddingHorizontal: 16,
-    borderRadius: theme.radius.pill,
-    borderWidth: 1, borderColor: theme.color.borderStrong,
-    backgroundColor: theme.color.surfaceSecondary,
+    borderRadius: t.radius.pill,
+    borderWidth: 1, borderColor: t.color.borderStrong,
+    backgroundColor: t.color.surfaceSecondary,
     alignItems: 'center', justifyContent: 'center',
     flexShrink: 0,
   },
-  chipActive: { backgroundColor: theme.color.brand, borderColor: theme.color.brand },
-  chipText: { color: theme.color.onSurfaceSecondary, fontSize: 13, fontWeight: '600' },
-  chipTextActive: { color: theme.color.onBrandPrimary },
+  chipActive: { backgroundColor: t.color.brand, borderColor: t.color.brand },
+  chipText: { color: t.color.onSurfaceSecondary, fontSize: 13, fontWeight: '600' },
+  chipTextActive: { color: t.color.onBrandPrimary },
   card: {
-    flexDirection: 'row', gap: theme.spacing.md, alignItems: 'center',
-    padding: theme.spacing.md, backgroundColor: theme.color.surfaceSecondary,
-    borderRadius: theme.radius.md, borderWidth: 1, borderColor: theme.color.border,
+    flexDirection: 'row', gap: t.spacing.md, alignItems: 'center',
+    padding: t.spacing.md, backgroundColor: t.color.surfaceSecondary,
+    borderRadius: t.radius.md, borderWidth: 1, borderColor: t.color.border,
   },
-  avatar: { width: 64, height: 64, borderRadius: theme.radius.md },
-  dot: { position: 'absolute', top: -2, right: -2, width: 12, height: 12, borderRadius: 6, backgroundColor: theme.color.success, borderWidth: 2, borderColor: theme.color.surfaceSecondary },
-  name: { color: theme.color.onSurface, fontWeight: '700', fontSize: 16 },
-  specs: { color: theme.color.brand, fontSize: 12, marginTop: 2 },
-  langs: { color: theme.color.onSurfaceTertiary, fontSize: 11, marginTop: 2 },
+  avatar: { width: 64, height: 64, borderRadius: t.radius.md },
+  dot: { position: 'absolute', top: -2, right: -2, width: 12, height: 12, borderRadius: 6, backgroundColor: t.color.success, borderWidth: 2, borderColor: t.color.surfaceSecondary },
+  name: { color: t.color.onSurface, fontWeight: '700', fontSize: 16 },
+  specs: { color: t.color.brand, fontSize: 12, marginTop: 2 },
+  langs: { color: t.color.onSurfaceTertiary, fontSize: 11, marginTop: 2 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
-  rating: { color: theme.color.onSurface, fontSize: 12, fontWeight: '600' },
-  orders: { color: theme.color.onSurfaceTertiary, fontSize: 11 },
+  rating: { color: t.color.onSurface, fontSize: 12, fontWeight: '600' },
+  orders: { color: t.color.onSurfaceTertiary, fontSize: 11 },
   rightCol: { alignItems: 'center', gap: 2 },
-  price: { color: theme.color.brand, fontSize: 18, fontWeight: '800' },
-  perMin: { color: theme.color.onSurfaceTertiary, fontSize: 10, marginTop: -4 },
-  chatBtn: { marginTop: 6, backgroundColor: theme.color.brand, paddingHorizontal: 14, paddingVertical: 6, borderRadius: theme.radius.pill },
-  chatBtnText: { color: theme.color.onBrandPrimary, fontSize: 12, fontWeight: '700' },
-  empty: { color: theme.color.onSurfaceTertiary, textAlign: 'center', marginTop: 40 },
-});
+  price: { color: t.color.brand, fontSize: 18, fontWeight: '800' },
+  perMin: { color: t.color.onSurfaceTertiary, fontSize: 10, marginTop: -4 },
+  chatBtn: { marginTop: 6, backgroundColor: t.color.brand, paddingHorizontal: 14, paddingVertical: 6, borderRadius: t.radius.pill },
+  chatBtnText: { color: t.color.onBrandPrimary, fontSize: 12, fontWeight: '700' },
+  empty: { color: t.color.onSurfaceTertiary, textAlign: 'center', marginTop: 40 },
+})
+  ), [t]);
+}

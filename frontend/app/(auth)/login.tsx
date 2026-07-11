@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { theme } from '@/src/theme';
 import { useAuth } from '@/src/AuthContext';
+import { useTheme } from '@/src/ThemeContext';
 
 const BG = 'https://images.unsplash.com/photo-1778660825961-723f13715a79?crop=entropy&cs=srgb&fm=jpg&w=1200&q=85';
 
 export default function Login() {
+  const t = useTheme();
+  const styles = useStyles();
   const { loginWithGoogle, loginWithPhone, requestOtp } = useAuth();
   const [mode, setMode] = useState<'home' | 'phone'>('home');
   const [phone, setPhone] = useState('');
@@ -45,7 +47,7 @@ export default function Login() {
     <View style={styles.root}>
       <Image source={BG} style={StyleSheet.absoluteFill} contentFit="cover" />
       <LinearGradient
-        colors={['rgba(15,14,13,0.3)', 'rgba(15,14,13,0.85)', theme.color.surface]}
+        colors={['rgba(15,14,13,0.3)', 'rgba(15,14,13,0.85)', t.color.surface]}
         locations={[0, 0.55, 1]}
         style={StyleSheet.absoluteFill}
       />
@@ -66,9 +68,9 @@ export default function Login() {
                     onPress={onGoogle}
                     disabled={busy}
                   >
-                    {busy ? <ActivityIndicator color={theme.color.onBrandPrimary} /> : (
+                    {busy ? <ActivityIndicator color={t.color.onBrandPrimary} /> : (
                       <>
-                        <Ionicons name="logo-google" size={18} color={theme.color.onBrandPrimary} />
+                        <Ionicons name="logo-google" size={18} color={t.color.onBrandPrimary} />
                         <Text style={styles.primaryText}>Continue with Google</Text>
                       </>
                     )}
@@ -79,20 +81,20 @@ export default function Login() {
                     style={({ pressed }) => [styles.secondaryBtn, pressed && { opacity: 0.85 }]}
                     onPress={() => setMode('phone')}
                   >
-                    <Ionicons name="call-outline" size={18} color={theme.color.onSurface} />
+                    <Ionicons name="call-outline" size={18} color={t.color.onSurface} />
                     <Text style={styles.secondaryText}>Continue with Phone</Text>
                   </Pressable>
                 </>
               )}
 
               {mode === 'phone' && (
-                <View style={{ gap: theme.spacing.md }}>
+                <View style={{ gap: t.spacing.md }}>
                   <Text style={styles.formLabel}>Phone number</Text>
                   <TextInput
                     testID="phone-input"
                     style={styles.input}
                     placeholder="+1 555 123 4567"
-                    placeholderTextColor={theme.color.muted}
+                    placeholderTextColor={t.color.muted}
                     value={phone}
                     onChangeText={setPhone}
                     keyboardType="phone-pad"
@@ -104,7 +106,7 @@ export default function Login() {
                         testID="name-input"
                         style={styles.input}
                         placeholder="Your name"
-                        placeholderTextColor={theme.color.muted}
+                        placeholderTextColor={t.color.muted}
                         value={name}
                         onChangeText={setName}
                       />
@@ -113,7 +115,7 @@ export default function Login() {
                         testID="otp-input"
                         style={styles.input}
                         placeholder="6-digit code"
-                        placeholderTextColor={theme.color.muted}
+                        placeholderTextColor={t.color.muted}
                         value={otp}
                         onChangeText={setOtp}
                         keyboardType="number-pad"
@@ -127,7 +129,7 @@ export default function Login() {
                     onPress={otpSent ? onVerify : onRequestOtp}
                     disabled={busy}
                   >
-                    {busy ? <ActivityIndicator color={theme.color.onBrandPrimary} /> : (
+                    {busy ? <ActivityIndicator color={t.color.onBrandPrimary} /> : (
                       <Text style={styles.primaryText}>{otpSent ? 'Verify & Sign in' : 'Send OTP'}</Text>
                     )}
                   </Pressable>
@@ -147,36 +149,41 @@ export default function Login() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: theme.color.surface },
-  scroll: { flexGrow: 1, justifyContent: 'space-between', padding: theme.spacing.xl },
-  hero: { marginTop: theme.spacing.xxxl, alignItems: 'flex-start' },
-  brand: { fontSize: 64, color: theme.color.brand, fontFamily: theme.font.display, letterSpacing: 1 },
-  tagline: { color: theme.color.onSurfaceSecondary, fontSize: 16, marginTop: theme.spacing.sm, maxWidth: 260 },
-  bottom: { gap: theme.spacing.md, paddingBottom: theme.spacing.lg },
+function useStyles() {
+  const t = useTheme();
+  return useMemo(() => (
+    StyleSheet.create({
+  root: { flex: 1, backgroundColor: t.color.surface },
+  scroll: { flexGrow: 1, justifyContent: 'space-between', padding: t.spacing.xl },
+  hero: { marginTop: t.spacing.xxxl, alignItems: 'flex-start' },
+  brand: { fontSize: 64, color: t.color.brand, fontFamily: t.font.display, letterSpacing: 1 },
+  tagline: { color: t.color.onSurfaceSecondary, fontSize: 16, marginTop: t.spacing.sm, maxWidth: 260 },
+  bottom: { gap: t.spacing.md, paddingBottom: t.spacing.lg },
   primaryBtn: {
-    backgroundColor: theme.color.brandPrimary,
-    borderRadius: theme.radius.pill,
+    backgroundColor: t.color.brandPrimary,
+    borderRadius: t.radius.pill,
     paddingVertical: 16,
     alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 10,
   },
-  primaryText: { color: theme.color.onBrandPrimary, fontSize: 16, fontWeight: '700' },
+  primaryText: { color: t.color.onBrandPrimary, fontSize: 16, fontWeight: '700' },
   secondaryBtn: {
-    borderRadius: theme.radius.pill, paddingVertical: 16,
+    borderRadius: t.radius.pill, paddingVertical: 16,
     alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 10,
-    borderWidth: 1, borderColor: theme.color.borderStrong, backgroundColor: 'rgba(28,26,24,0.6)',
+    borderWidth: 1, borderColor: t.color.borderStrong, backgroundColor: 'rgba(28,26,24,0.6)',
   },
-  secondaryText: { color: theme.color.onSurface, fontSize: 16, fontWeight: '600' },
-  formLabel: { color: theme.color.onSurfaceTertiary, fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.8 },
+  secondaryText: { color: t.color.onSurface, fontSize: 16, fontWeight: '600' },
+  formLabel: { color: t.color.onSurfaceTertiary, fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.8 },
   input: {
-    backgroundColor: theme.color.surfaceSecondary,
-    color: theme.color.onSurface,
-    borderRadius: theme.radius.md,
+    backgroundColor: t.color.surfaceSecondary,
+    color: t.color.onSurface,
+    borderRadius: t.radius.md,
     paddingHorizontal: 16, paddingVertical: 14,
-    borderWidth: 1, borderColor: theme.color.border,
+    borderWidth: 1, borderColor: t.color.border,
     fontSize: 16,
   },
-  link: { color: theme.color.brand, textAlign: 'center', marginTop: theme.spacing.sm },
-  err: { color: theme.color.error, textAlign: 'center' },
-  legal: { color: theme.color.muted, fontSize: 12, textAlign: 'center', marginTop: theme.spacing.sm },
-});
+  link: { color: t.color.brand, textAlign: 'center', marginTop: t.spacing.sm },
+  err: { color: t.color.error, textAlign: 'center' },
+  legal: { color: t.color.muted, fontSize: 12, textAlign: 'center', marginTop: t.spacing.sm },
+})
+  ), [t]);
+}

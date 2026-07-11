@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, Pressable, KeyboardAvoidingView, Platform, ActivityIndicator, Modal } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,12 +6,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInUp, FadeOutDown } from 'react-native-reanimated';
-import { theme } from '@/src/theme';
 import { api, wsUrl } from '@/src/api';
 import { useAuth } from '@/src/AuthContext';
 import { tokenStore } from '@/src/tokenStore';
+import { useTheme } from '@/src/ThemeContext';
 
 export default function ChatScreen() {
+  const t = useTheme();
+  const styles = useStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { user, refresh } = useAuth();
@@ -144,13 +146,13 @@ export default function ChatScreen() {
     <View style={styles.root}>
       <SafeAreaView edges={['top']} style={styles.headerSafe}>
         <View style={styles.header}>
-          <Pressable testID="chat-back" onPress={openEndSession}><Ionicons name="chevron-back" size={22} color={theme.color.onSurface} /></Pressable>
+          <Pressable testID="chat-back" onPress={openEndSession}><Ionicons name="chevron-back" size={22} color={t.color.onSurface} /></Pressable>
           {astro && <Image source={astro.avatar} style={styles.headerAvatar} contentFit="cover" />}
           <View style={{ flex: 1 }}>
             <Text style={styles.headerName} numberOfLines={1}>{astro?.name || 'Astrologer'}</Text>
             <Text style={styles.headerMeta}>{connecting ? 'Connecting…' : `Live · ${mm}:${ss}`}</Text>
           </View>
-          <View style={styles.balancePill}><Ionicons name="wallet" size={12} color={theme.color.brand} /><Text style={styles.balanceText}>${walletBalance.toFixed(2)}</Text></View>
+          <View style={styles.balancePill}><Ionicons name="wallet" size={12} color={t.color.brand} /><Text style={styles.balanceText}>${walletBalance.toFixed(2)}</Text></View>
           <Pressable testID="chat-end-btn" style={styles.endPill} onPress={openEndSession}>
             <Text style={styles.endPillText}>End</Text>
           </Pressable>
@@ -162,7 +164,7 @@ export default function ChatScreen() {
           ref={listRef}
           data={messages}
           keyExtractor={(m) => m.message_id}
-          contentContainerStyle={{ padding: theme.spacing.lg, gap: theme.spacing.sm, paddingBottom: theme.spacing.md }}
+          contentContainerStyle={{ padding: t.spacing.lg, gap: t.spacing.sm, paddingBottom: t.spacing.md }}
           renderItem={({ item }) => (
             <View style={[styles.bubbleWrap, item.sender === 'user' ? styles.bubbleRight : styles.bubbleLeft]}>
               <View style={[styles.bubble, item.sender === 'user' ? styles.bubbleUser : styles.bubbleAstro]}>
@@ -173,7 +175,7 @@ export default function ChatScreen() {
           ListFooterComponent={typing ? (
             <View style={[styles.bubbleWrap, styles.bubbleLeft]}>
               <View style={[styles.bubble, styles.bubbleAstro, { flexDirection: 'row', gap: 6 }]}>
-                <ActivityIndicator size="small" color={theme.color.brand} />
+                <ActivityIndicator size="small" color={t.color.brand} />
                 <Text style={styles.bubbleTextAstro}>Typing…</Text>
               </View>
             </View>
@@ -187,7 +189,7 @@ export default function ChatScreen() {
             value={text}
             onChangeText={setText}
             placeholder={astro && walletBalance < astro.price_per_min ? `Top up to continue (needs $${astro.price_per_min})` : 'Type your message…'}
-            placeholderTextColor={theme.color.muted}
+            placeholderTextColor={t.color.muted}
             multiline
             editable={!astro || walletBalance >= astro.price_per_min}
           />
@@ -197,7 +199,7 @@ export default function ChatScreen() {
             style={[styles.sendBtn, (!text.trim() || sending) && { opacity: 0.5 }]}
             disabled={!text.trim() || sending}
           >
-            <Ionicons name="arrow-up" size={20} color={theme.color.onBrandPrimary} />
+            <Ionicons name="arrow-up" size={20} color={t.color.onBrandPrimary} />
           </Pressable>
         </View>
       </KeyboardAvoidingView>
@@ -227,7 +229,7 @@ export default function ChatScreen() {
                   <Ionicons
                     name={n <= rating ? 'star' : 'star-outline'}
                     size={38}
-                    color={n <= rating ? theme.color.brand : theme.color.borderStrong}
+                    color={n <= rating ? t.color.brand : t.color.borderStrong}
                   />
                 </Pressable>
               ))}
@@ -239,7 +241,7 @@ export default function ChatScreen() {
               value={reviewText}
               onChangeText={setReviewText}
               placeholder="Share a few words about your experience (optional)"
-              placeholderTextColor={theme.color.muted}
+              placeholderTextColor={t.color.muted}
               multiline
               maxLength={300}
             />
@@ -255,7 +257,7 @@ export default function ChatScreen() {
                 disabled={rating < 1 || submittingReview}
               >
                 {submittingReview
-                  ? <ActivityIndicator color={theme.color.onBrandPrimary} />
+                  ? <ActivityIndicator color={t.color.onBrandPrimary} />
                   : <Text style={styles.submitText}>Submit review</Text>}
               </Pressable>
             </View>
@@ -274,7 +276,7 @@ export default function ChatScreen() {
           pointerEvents="none"
         >
           <View style={styles.toastIcon}>
-            <Ionicons name="checkmark" size={16} color={theme.color.onBrandPrimary} />
+            <Ionicons name="checkmark" size={16} color={t.color.onBrandPrimary} />
           </View>
           <Text style={styles.toastText}>{toast}</Text>
         </Animated.View>
@@ -283,48 +285,51 @@ export default function ChatScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: theme.color.surface },
-  headerSafe: { backgroundColor: theme.color.surfaceSecondary, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.color.border },
-  header: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md, paddingHorizontal: theme.spacing.lg, paddingVertical: theme.spacing.md },
+function useStyles() {
+  const t = useTheme();
+  return useMemo(() => (
+    StyleSheet.create({
+  root: { flex: 1, backgroundColor: t.color.surface },
+  headerSafe: { backgroundColor: t.color.surfaceSecondary, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: t.color.border },
+  header: { flexDirection: 'row', alignItems: 'center', gap: t.spacing.md, paddingHorizontal: t.spacing.lg, paddingVertical: t.spacing.md },
   headerAvatar: { width: 36, height: 36, borderRadius: 18 },
-  headerName: { color: theme.color.onSurface, fontWeight: '700' },
-  headerMeta: { color: theme.color.brand, fontSize: 12 },
-  balancePill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: theme.radius.pill, backgroundColor: theme.color.brandTertiary },
-  balanceText: { color: theme.color.brand, fontSize: 12, fontWeight: '700' },
+  headerName: { color: t.color.onSurface, fontWeight: '700' },
+  headerMeta: { color: t.color.brand, fontSize: 12 },
+  balancePill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: t.radius.pill, backgroundColor: t.color.brandTertiary },
+  balanceText: { color: t.color.brand, fontSize: 12, fontWeight: '700' },
   bubbleWrap: { flexDirection: 'row' },
   bubbleLeft: { justifyContent: 'flex-start' },
   bubbleRight: { justifyContent: 'flex-end' },
-  bubble: { maxWidth: '82%', paddingHorizontal: 14, paddingVertical: 10, borderRadius: theme.radius.md },
-  bubbleUser: { backgroundColor: theme.color.brand, borderBottomRightRadius: 4 },
-  bubbleAstro: { backgroundColor: theme.color.brandTertiary, borderBottomLeftRadius: 4 },
-  bubbleTextUser: { color: theme.color.onBrandPrimary, fontSize: 15, lineHeight: 20 },
-  bubbleTextAstro: { color: theme.color.onSurface, fontSize: 15, lineHeight: 20 },
-  composer: { flexDirection: 'row', alignItems: 'flex-end', gap: theme.spacing.sm, padding: theme.spacing.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.color.border, backgroundColor: theme.color.surfaceSecondary },
-  input: { flex: 1, minHeight: 44, maxHeight: 120, color: theme.color.onSurface, backgroundColor: theme.color.surface, borderRadius: theme.radius.lg, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderColor: theme.color.border, fontSize: 15 },
-  sendBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: theme.color.brand, alignItems: 'center', justifyContent: 'center' },
-  endPill: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: theme.radius.pill, backgroundColor: 'rgba(158,62,62,0.2)', borderWidth: 1, borderColor: theme.color.error },
-  endPillText: { color: theme.color.error, fontSize: 12, fontWeight: '700' },
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', padding: theme.spacing.xl },
-  modalCard: { backgroundColor: theme.color.surfaceSecondary, borderRadius: theme.radius.lg, padding: theme.spacing.xl, borderWidth: 1, borderColor: theme.color.border, gap: theme.spacing.md },
+  bubble: { maxWidth: '82%', paddingHorizontal: 14, paddingVertical: 10, borderRadius: t.radius.md },
+  bubbleUser: { backgroundColor: t.color.brand, borderBottomRightRadius: 4 },
+  bubbleAstro: { backgroundColor: t.color.brandTertiary, borderBottomLeftRadius: 4 },
+  bubbleTextUser: { color: t.color.onBrandPrimary, fontSize: 15, lineHeight: 20 },
+  bubbleTextAstro: { color: t.color.onSurface, fontSize: 15, lineHeight: 20 },
+  composer: { flexDirection: 'row', alignItems: 'flex-end', gap: t.spacing.sm, padding: t.spacing.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.color.border, backgroundColor: t.color.surfaceSecondary },
+  input: { flex: 1, minHeight: 44, maxHeight: 120, color: t.color.onSurface, backgroundColor: t.color.surface, borderRadius: t.radius.lg, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderColor: t.color.border, fontSize: 15 },
+  sendBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: t.color.brand, alignItems: 'center', justifyContent: 'center' },
+  endPill: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: t.radius.pill, backgroundColor: 'rgba(158,62,62,0.2)', borderWidth: 1, borderColor: t.color.error },
+  endPillText: { color: t.color.error, fontSize: 12, fontWeight: '700' },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', padding: t.spacing.xl },
+  modalCard: { backgroundColor: t.color.surfaceSecondary, borderRadius: t.radius.lg, padding: t.spacing.xl, borderWidth: 1, borderColor: t.color.border, gap: t.spacing.md },
   modalHeader: { alignItems: 'center', gap: 6 },
-  modalAvatar: { width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: theme.color.brand, marginBottom: theme.spacing.sm },
-  modalTitle: { color: theme.color.onSurface, fontSize: 22, fontFamily: theme.font.display },
-  modalSub: { color: theme.color.onSurfaceTertiary, fontSize: 13, textAlign: 'center' },
-  starsRow: { flexDirection: 'row', justifyContent: 'center', gap: theme.spacing.md, marginTop: theme.spacing.sm },
-  reviewInput: { backgroundColor: theme.color.surface, color: theme.color.onSurface, borderRadius: theme.radius.md, padding: theme.spacing.md, borderWidth: 1, borderColor: theme.color.border, fontSize: 14, minHeight: 90, textAlignVertical: 'top' },
-  modalActions: { flexDirection: 'row', gap: theme.spacing.sm, marginTop: theme.spacing.sm },
-  skipBtn: { flex: 1, paddingVertical: 14, borderRadius: theme.radius.pill, alignItems: 'center', borderWidth: 1, borderColor: theme.color.borderStrong },
-  skipText: { color: theme.color.onSurfaceSecondary, fontWeight: '600' },
-  submitBtn: { flex: 2, paddingVertical: 14, borderRadius: theme.radius.pill, backgroundColor: theme.color.brand, alignItems: 'center' },
-  submitText: { color: theme.color.onBrandPrimary, fontWeight: '700' },
-  reviewErrorText: { color: theme.color.error, fontSize: 12, textAlign: 'center', marginTop: -4 },
+  modalAvatar: { width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: t.color.brand, marginBottom: t.spacing.sm },
+  modalTitle: { color: t.color.onSurface, fontSize: 22, fontFamily: t.font.display },
+  modalSub: { color: t.color.onSurfaceTertiary, fontSize: 13, textAlign: 'center' },
+  starsRow: { flexDirection: 'row', justifyContent: 'center', gap: t.spacing.md, marginTop: t.spacing.sm },
+  reviewInput: { backgroundColor: t.color.surface, color: t.color.onSurface, borderRadius: t.radius.md, padding: t.spacing.md, borderWidth: 1, borderColor: t.color.border, fontSize: 14, minHeight: 90, textAlignVertical: 'top' },
+  modalActions: { flexDirection: 'row', gap: t.spacing.sm, marginTop: t.spacing.sm },
+  skipBtn: { flex: 1, paddingVertical: 14, borderRadius: t.radius.pill, alignItems: 'center', borderWidth: 1, borderColor: t.color.borderStrong },
+  skipText: { color: t.color.onSurfaceSecondary, fontWeight: '600' },
+  submitBtn: { flex: 2, paddingVertical: 14, borderRadius: t.radius.pill, backgroundColor: t.color.brand, alignItems: 'center' },
+  submitText: { color: t.color.onBrandPrimary, fontWeight: '700' },
+  reviewErrorText: { color: t.color.error, fontSize: 12, textAlign: 'center', marginTop: -4 },
   toast: {
     position: 'absolute',
     left: 20, right: 20, bottom: 40,
-    backgroundColor: theme.color.surfaceSecondary,
-    borderWidth: 1, borderColor: theme.color.brand,
-    borderRadius: theme.radius.pill,
+    backgroundColor: t.color.surfaceSecondary,
+    borderWidth: 1, borderColor: t.color.brand,
+    borderRadius: t.radius.pill,
     paddingHorizontal: 14, paddingVertical: 12,
     flexDirection: 'row', alignItems: 'center', gap: 10,
     shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 8, shadowOffset: { width: 0, height: 4 },
@@ -332,8 +337,10 @@ const styles = StyleSheet.create({
   },
   toastIcon: {
     width: 22, height: 22, borderRadius: 11,
-    backgroundColor: theme.color.brand,
+    backgroundColor: t.color.brand,
     alignItems: 'center', justifyContent: 'center',
   },
-  toastText: { color: theme.color.onSurface, fontSize: 14, fontWeight: '600', flex: 1 },
-});
+  toastText: { color: t.color.onSurface, fontSize: 14, fontWeight: '600', flex: 1 },
+})
+  ), [t]);
+}

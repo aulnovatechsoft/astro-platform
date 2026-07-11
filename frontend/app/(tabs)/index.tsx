@@ -5,9 +5,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { theme } from '@/src/theme';
 import { useAuth } from '@/src/AuthContext';
 import { api } from '@/src/api';
+import { useTheme } from '@/src/ThemeContext';
 
 const MOON_BG = 'https://images.unsplash.com/photo-1527842891421-42eec6e703ea?crop=entropy&cs=srgb&fm=jpg&w=1000&q=85';
 
@@ -26,6 +26,7 @@ const QUICK_ACTIONS = [
 ];
 
 function LivePulse() {
+  const styles = useStyles();
   const [scale] = useState(new Animated.Value(1));
   useEffect(() => {
     const loop = Animated.loop(Animated.sequence([
@@ -44,6 +45,8 @@ function LivePulse() {
 }
 
 export default function Home() {
+  const t = useTheme();
+  const styles = useStyles();
   const { user } = useAuth();
   const router = useRouter();
   const [sign, setSign] = useState('Leo');
@@ -76,7 +79,7 @@ export default function Home() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 130 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.color.brand} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={t.color.brand} />}
         >
           {/* HEADER */}
           <View style={styles.header}>
@@ -85,25 +88,25 @@ export default function Home() {
               <Text style={styles.name} testID="home-user-name">{user?.name?.split(' ')[0] || 'Seeker'} ✨</Text>
             </View>
             <Pressable testID="home-notifications" style={styles.iconBtn}>
-              <Ionicons name="notifications-outline" size={20} color={theme.color.onSurface} />
+              <Ionicons name="notifications-outline" size={20} color={t.color.onSurface} />
               {data?.announcement && <View style={styles.notifDot} />}
             </Pressable>
             <Pressable testID="home-wallet-pill" onPress={() => router.push('/wallet')} style={styles.walletPill}>
-              <Ionicons name="wallet" size={14} color={theme.color.brand} />
+              <Ionicons name="wallet" size={14} color={t.color.brand} />
               <Text style={styles.walletText}>${(user?.wallet_balance ?? 0).toFixed(0)}</Text>
             </Pressable>
           </View>
 
           {/* SEARCH */}
           <Pressable style={styles.searchBar} onPress={() => goAstros()} testID="home-search">
-            <Ionicons name="search" size={18} color={theme.color.onSurfaceTertiary} />
+            <Ionicons name="search" size={18} color={t.color.onSurfaceTertiary} />
             <Text style={styles.searchPlaceholder}>Ask about love, career, marriage…</Text>
           </Pressable>
 
           {/* ANNOUNCEMENT */}
           {data?.announcement && (
             <View style={styles.announceCard} testID="announcement-banner">
-              <Ionicons name="megaphone" size={16} color={theme.color.brand} />
+              <Ionicons name="megaphone" size={16} color={t.color.brand} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.announceTitle}>{data.announcement.title}</Text>
                 <Text style={styles.announceBody} numberOfLines={2}>{data.announcement.body}</Text>
@@ -121,8 +124,8 @@ export default function Home() {
                 style={[styles.signPill, sign === z.sign && styles.signPillActive]}
                 onPress={() => setSign(z.sign)}
               >
-                <Text style={[styles.signGlyph, sign === z.sign && { color: theme.color.onBrandPrimary }]}>{z.glyph}</Text>
-                <Text style={[styles.signLabel, sign === z.sign && { color: theme.color.onBrandPrimary }]}>{z.sign.slice(0, 3)}</Text>
+                <Text style={[styles.signGlyph, sign === z.sign && { color: t.color.onBrandPrimary }]}>{z.glyph}</Text>
+                <Text style={[styles.signLabel, sign === z.sign && { color: t.color.onBrandPrimary }]}>{z.sign.slice(0, 3)}</Text>
               </Pressable>
             ))}
           </ScrollView>
@@ -153,7 +156,7 @@ export default function Home() {
                 style={styles.quickCard}
                 onPress={() => router.push(q.route as any)}
               >
-                <View style={styles.quickIcon}><Ionicons name={q.icon as any} size={20} color={theme.color.brand} /></View>
+                <View style={styles.quickIcon}><Ionicons name={q.icon as any} size={20} color={t.color.brand} /></View>
                 <Text style={styles.quickLabel}>{q.label}</Text>
                 <Text style={styles.quickSub}>{q.sub}</Text>
               </Pressable>
@@ -162,12 +165,12 @@ export default function Home() {
 
           {/* PROMO */}
           <Pressable style={styles.promoBanner} onPress={() => router.push('/wallet')} testID="home-promo">
-            <View style={styles.promoIconBox}><Ionicons name="gift" size={22} color={theme.color.brand} /></View>
+            <View style={styles.promoIconBox}><Ionicons name="gift" size={22} color={t.color.brand} /></View>
             <View style={{ flex: 1 }}>
               <Text style={styles.promoTitle}>First recharge? Get +20% bonus</Text>
               <Text style={styles.promoSub}>Add $25 and get $30 wallet credit. Limited time.</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={theme.color.brand} />
+            <Ionicons name="chevron-forward" size={18} color={t.color.brand} />
           </Pressable>
 
           {/* LIVE NOW */}
@@ -183,7 +186,7 @@ export default function Home() {
             horizontal
             keyExtractor={(i) => i.astrologer_id}
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: theme.spacing.xl, gap: theme.spacing.md }}
+            contentContainerStyle={{ paddingHorizontal: t.spacing.xl, gap: t.spacing.md }}
             renderItem={({ item }) => (
               <Pressable
                 testID={`home-live-${item.astrologer_id}`}
@@ -197,7 +200,7 @@ export default function Home() {
                 <Text style={styles.liveName} numberOfLines={1}>{item.name}</Text>
                 <Text style={styles.liveSpec} numberOfLines={1}>{item.specialties[0]}</Text>
                 <View style={styles.rateRow}>
-                  <Ionicons name="star" size={11} color={theme.color.brand} />
+                  <Ionicons name="star" size={11} color={t.color.brand} />
                   <Text style={styles.rateText}>{item.rating.toFixed(1)}</Text>
                   <Text style={styles.rateDot}>·</Text>
                   <Text style={styles.rateText}>${item.price_per_min}/min</Text>
@@ -207,7 +210,7 @@ export default function Home() {
           />
 
           {/* CONCERNS */}
-          <Text style={[styles.sectionTitle, { paddingHorizontal: theme.spacing.xl, marginTop: theme.spacing.xxl, marginBottom: theme.spacing.md }]}>Ask about</Text>
+          <Text style={[styles.sectionTitle, { paddingHorizontal: t.spacing.xl, marginTop: t.spacing.xxl, marginBottom: t.spacing.md }]}>Ask about</Text>
           <View style={styles.concernsGrid}>
             {(data?.concerns || []).map((c: any) => (
               <Pressable
@@ -216,14 +219,14 @@ export default function Home() {
                 style={styles.concernCard}
                 onPress={() => goAstros(c.specialty)}
               >
-                <View style={styles.concernIcon}><Ionicons name={c.icon} size={18} color={theme.color.brand} /></View>
+                <View style={styles.concernIcon}><Ionicons name={c.icon} size={18} color={t.color.brand} /></View>
                 <Text style={styles.concernLabel}>{c.label}</Text>
               </Pressable>
             ))}
           </View>
 
           {/* PANCHANG */}
-          <Text style={[styles.sectionTitle, { paddingHorizontal: theme.spacing.xl, marginTop: theme.spacing.xxl, marginBottom: theme.spacing.md }]}>Today's Panchang</Text>
+          <Text style={[styles.sectionTitle, { paddingHorizontal: t.spacing.xl, marginTop: t.spacing.xxl, marginBottom: t.spacing.md }]}>Today&apos;s Panchang</Text>
           <View style={styles.panchang}>
             <View style={styles.panchangHeader}>
               <View>
@@ -237,16 +240,16 @@ export default function Home() {
               <View style={styles.panchangItem}><Text style={styles.pKey}>Nakshatra</Text><Text style={styles.pVal}>{data?.panchang?.nakshatra}</Text></View>
               <View style={styles.panchangItem}><Text style={styles.pKey}>Sunrise</Text><Text style={styles.pVal}>{data?.panchang?.sunrise}</Text></View>
               <View style={styles.panchangItem}><Text style={styles.pKey}>Sunset</Text><Text style={styles.pVal}>{data?.panchang?.sunset}</Text></View>
-              <View style={styles.panchangItem}><Text style={styles.pKey}>Abhijit</Text><Text style={[styles.pVal, { color: theme.color.success }]}>{data?.panchang?.abhijit}</Text></View>
-              <View style={styles.panchangItem}><Text style={styles.pKey}>Rahu Kaal</Text><Text style={[styles.pVal, { color: theme.color.error }]}>{data?.panchang?.rahu_kaal}</Text></View>
+              <View style={styles.panchangItem}><Text style={styles.pKey}>Abhijit</Text><Text style={[styles.pVal, { color: t.color.success }]}>{data?.panchang?.abhijit}</Text></View>
+              <View style={styles.panchangItem}><Text style={styles.pKey}>Rahu Kaal</Text><Text style={[styles.pVal, { color: t.color.error }]}>{data?.panchang?.rahu_kaal}</Text></View>
             </View>
           </View>
 
           {/* CARD OF THE DAY */}
-          <Text style={[styles.sectionTitle, { paddingHorizontal: theme.spacing.xl, marginTop: theme.spacing.xxl, marginBottom: theme.spacing.md }]}>Your Card of the Day</Text>
+          <Text style={[styles.sectionTitle, { paddingHorizontal: t.spacing.xl, marginTop: t.spacing.xxl, marginBottom: t.spacing.md }]}>Your Card of the Day</Text>
           <Pressable style={styles.tarotCard} onPress={() => setCardRevealed((r) => !r)} testID="card-of-the-day">
             {!cardRevealed ? (
-              <LinearGradient colors={[theme.color.brandTertiary, theme.color.surfaceSecondary]} style={StyleSheet.absoluteFill}>
+              <LinearGradient colors={[t.color.brandTertiary, t.color.surfaceSecondary]} style={StyleSheet.absoluteFill}>
                 <View style={styles.tarotBackContent}>
                   <Text style={styles.tarotBackGlyph}>✦</Text>
                   <Text style={styles.tarotBackText}>Tap to reveal</Text>
@@ -262,18 +265,18 @@ export default function Home() {
           </Pressable>
 
           {/* COMPATIBILITY */}
-          <Text style={[styles.sectionTitle, { paddingHorizontal: theme.spacing.xl, marginTop: theme.spacing.xxl, marginBottom: theme.spacing.md }]}>Love Compatibility</Text>
+          <Text style={[styles.sectionTitle, { paddingHorizontal: t.spacing.xl, marginTop: t.spacing.xxl, marginBottom: t.spacing.md }]}>Love Compatibility</Text>
           <View style={styles.compatCard}>
             <View style={styles.compatRow}>
               <View style={styles.compatPill}><Text style={styles.compatSignText}>{sign}</Text></View>
               <View style={styles.compatHeart}>
-                <Ionicons name="heart" size={24} color={theme.color.brand} />
+                <Ionicons name="heart" size={24} color={t.color.brand} />
                 <Text style={styles.compatScore}>{compat?.score ?? '—'}%</Text>
               </View>
               <View style={styles.compatPill}><Text style={styles.compatSignText}>{compatB}</Text></View>
             </View>
             <Text style={styles.compatVerdict}>{compat?.verdict}</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingTop: theme.spacing.md }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingTop: t.spacing.md }}>
               {ZODIAC.map((z) => (
                 <Pressable
                   key={z.sign}
@@ -281,7 +284,7 @@ export default function Home() {
                   onPress={() => setCompatB(z.sign)}
                   style={[styles.compatChip, compatB === z.sign && styles.compatChipActive]}
                 >
-                  <Text style={[styles.compatChipText, compatB === z.sign && { color: theme.color.onBrandPrimary }]}>{z.glyph} {z.sign.slice(0,3)}</Text>
+                  <Text style={[styles.compatChipText, compatB === z.sign && { color: t.color.onBrandPrimary }]}>{z.glyph} {z.sign.slice(0,3)}</Text>
                 </Pressable>
               ))}
             </ScrollView>
@@ -304,7 +307,7 @@ export default function Home() {
                 <Text style={styles.topName}>{a.name}</Text>
                 <Text style={styles.topSpec}>{a.specialties.join(' · ')}</Text>
                 <View style={styles.rateRow}>
-                  <Ionicons name="star" size={12} color={theme.color.brand} />
+                  <Ionicons name="star" size={12} color={t.color.brand} />
                   <Text style={styles.rateText}>{a.rating.toFixed(1)}</Text>
                   <Text style={styles.rateDot}>·</Text>
                   <Text style={styles.rateText}>{a.experience_years}y exp</Text>
@@ -318,17 +321,17 @@ export default function Home() {
           ))}
 
           {/* TESTIMONIALS */}
-          <Text style={[styles.sectionTitle, { paddingHorizontal: theme.spacing.xl, marginTop: theme.spacing.xxl, marginBottom: theme.spacing.md }]}>What seekers say</Text>
+          <Text style={[styles.sectionTitle, { paddingHorizontal: t.spacing.xl, marginTop: t.spacing.xxl, marginBottom: t.spacing.md }]}>What seekers say</Text>
           <FlatList
             data={data?.testimonials || []}
             horizontal
             keyExtractor={(t) => t.name}
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: theme.spacing.xl, gap: theme.spacing.md }}
+            contentContainerStyle={{ paddingHorizontal: t.spacing.xl, gap: t.spacing.md }}
             renderItem={({ item }) => (
               <View style={styles.testCard} testID={`testimonial-${item.name}`}>
                 <View style={styles.testStars}>
-                  {Array.from({ length: item.rating }).map((_, i) => (<Ionicons key={i} name="star" size={12} color={theme.color.brand} />))}
+                  {Array.from({ length: item.rating }).map((_, i) => (<Ionicons key={i} name="star" size={12} color={t.color.brand} />))}
                 </View>
                 <Text style={styles.testText}>“{item.text}”</Text>
                 <Text style={styles.testAuthor}>— {item.name}, {item.sign}</Text>
@@ -349,121 +352,126 @@ export default function Home() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: theme.color.surface },
+function useStyles() {
+  const t = useTheme();
+  return useMemo(() => (
+    StyleSheet.create({
+  root: { flex: 1, backgroundColor: t.color.surface },
   // Header
-  header: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm, paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md, paddingBottom: theme.spacing.md },
-  hello: { color: theme.color.onSurfaceTertiary, fontSize: 13 },
-  name: { color: theme.color.onSurface, fontSize: 22, fontFamily: theme.font.display, marginTop: 2 },
-  iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.color.surfaceSecondary, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.color.border },
-  notifDot: { position: 'absolute', top: 10, right: 10, width: 8, height: 8, borderRadius: 4, backgroundColor: theme.color.brand },
-  walletPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 8, borderRadius: theme.radius.pill, backgroundColor: theme.color.brandTertiary },
-  walletText: { color: theme.color.brand, fontWeight: '800', fontSize: 13 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: t.spacing.sm, paddingHorizontal: t.spacing.xl, paddingTop: t.spacing.md, paddingBottom: t.spacing.md },
+  hello: { color: t.color.onSurfaceTertiary, fontSize: 13 },
+  name: { color: t.color.onSurface, fontSize: 22, fontFamily: t.font.display, marginTop: 2 },
+  iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: t.color.surfaceSecondary, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: t.color.border },
+  notifDot: { position: 'absolute', top: 10, right: 10, width: 8, height: 8, borderRadius: 4, backgroundColor: t.color.brand },
+  walletPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 8, borderRadius: t.radius.pill, backgroundColor: t.color.brandTertiary },
+  walletText: { color: t.color.brand, fontWeight: '800', fontSize: 13 },
   // Search
-  searchBar: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: theme.spacing.xl, paddingHorizontal: 14, paddingVertical: 12, borderRadius: theme.radius.pill, backgroundColor: theme.color.surfaceSecondary, borderWidth: 1, borderColor: theme.color.border },
-  searchPlaceholder: { color: theme.color.muted, fontSize: 14 },
+  searchBar: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: t.spacing.xl, paddingHorizontal: 14, paddingVertical: 12, borderRadius: t.radius.pill, backgroundColor: t.color.surfaceSecondary, borderWidth: 1, borderColor: t.color.border },
+  searchPlaceholder: { color: t.color.muted, fontSize: 14 },
   // Announcement
-  announceCard: { flexDirection: 'row', gap: theme.spacing.md, alignItems: 'flex-start', marginHorizontal: theme.spacing.xl, marginTop: theme.spacing.md, padding: theme.spacing.md, borderRadius: theme.radius.md, backgroundColor: theme.color.brandTertiary, borderLeftWidth: 3, borderLeftColor: theme.color.brand },
-  announceTitle: { color: theme.color.brand, fontWeight: '700', fontSize: 13 },
-  announceBody: { color: theme.color.onSurfaceSecondary, fontSize: 12, marginTop: 2 },
+  announceCard: { flexDirection: 'row', gap: t.spacing.md, alignItems: 'flex-start', marginHorizontal: t.spacing.xl, marginTop: t.spacing.md, padding: t.spacing.md, borderRadius: t.radius.md, backgroundColor: t.color.brandTertiary, borderLeftWidth: 3, borderLeftColor: t.color.brand },
+  announceTitle: { color: t.color.brand, fontWeight: '700', fontSize: 13 },
+  announceBody: { color: t.color.onSurfaceSecondary, fontSize: 12, marginTop: 2 },
   // Sections
-  sectionEyebrow: { color: theme.color.onSurfaceTertiary, fontSize: 11, letterSpacing: 1.3, fontWeight: '700', paddingHorizontal: theme.spacing.xl, marginTop: theme.spacing.xl, marginBottom: theme.spacing.sm },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: theme.spacing.xl, marginTop: theme.spacing.xxl, marginBottom: theme.spacing.md },
-  sectionTitle: { color: theme.color.onSurface, fontSize: 20, fontFamily: theme.font.display },
-  seeAll: { color: theme.color.brand, fontSize: 13, fontWeight: '600' },
+  sectionEyebrow: { color: t.color.onSurfaceTertiary, fontSize: 11, letterSpacing: 1.3, fontWeight: '700', paddingHorizontal: t.spacing.xl, marginTop: t.spacing.xl, marginBottom: t.spacing.sm },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: t.spacing.xl, marginTop: t.spacing.xxl, marginBottom: t.spacing.md },
+  sectionTitle: { color: t.color.onSurface, fontSize: 20, fontFamily: t.font.display },
+  seeAll: { color: t.color.brand, fontSize: 13, fontWeight: '600' },
   // Zodiac selector
-  zodiacRow: { paddingHorizontal: theme.spacing.xl, gap: 8, alignItems: 'center', paddingBottom: theme.spacing.md },
-  signPill: { alignItems: 'center', justifyContent: 'center', minWidth: 56, height: 66, borderRadius: theme.radius.md, backgroundColor: theme.color.surfaceSecondary, borderWidth: 1, borderColor: theme.color.border, paddingHorizontal: 10, flexShrink: 0 },
-  signPillActive: { backgroundColor: theme.color.brand, borderColor: theme.color.brand },
-  signGlyph: { fontSize: 22, color: theme.color.brand },
-  signLabel: { color: theme.color.onSurfaceSecondary, fontSize: 10, fontWeight: '700', marginTop: 2 },
+  zodiacRow: { paddingHorizontal: t.spacing.xl, gap: 8, alignItems: 'center', paddingBottom: t.spacing.md },
+  signPill: { alignItems: 'center', justifyContent: 'center', minWidth: 56, height: 66, borderRadius: t.radius.md, backgroundColor: t.color.surfaceSecondary, borderWidth: 1, borderColor: t.color.border, paddingHorizontal: 10, flexShrink: 0 },
+  signPillActive: { backgroundColor: t.color.brand, borderColor: t.color.brand },
+  signGlyph: { fontSize: 22, color: t.color.brand },
+  signLabel: { color: t.color.onSurfaceSecondary, fontSize: 10, fontWeight: '700', marginTop: 2 },
   // Hero
-  hero: { marginHorizontal: theme.spacing.xl, height: 260, borderRadius: theme.radius.lg, overflow: 'hidden', justifyContent: 'flex-end' },
-  heroContent: { padding: theme.spacing.xl, gap: 6 },
-  heroLabel: { color: theme.color.brand, fontSize: 11, letterSpacing: 1.4, fontWeight: '700' },
-  heroTitle: { color: theme.color.onSurface, fontSize: 32, fontFamily: theme.font.display, lineHeight: 36 },
-  heroReading: { color: theme.color.onSurfaceSecondary, fontSize: 13, marginTop: 4, lineHeight: 18 },
-  luckyRow: { flexDirection: 'row', gap: 6, marginTop: theme.spacing.sm, flexWrap: 'wrap' },
+  hero: { marginHorizontal: t.spacing.xl, height: 260, borderRadius: t.radius.lg, overflow: 'hidden', justifyContent: 'flex-end' },
+  heroContent: { padding: t.spacing.xl, gap: 6 },
+  heroLabel: { color: t.color.brand, fontSize: 11, letterSpacing: 1.4, fontWeight: '700' },
+  heroTitle: { color: t.color.onSurface, fontSize: 32, fontFamily: t.font.display, lineHeight: 36 },
+  heroReading: { color: t.color.onSurfaceSecondary, fontSize: 13, marginTop: 4, lineHeight: 18 },
+  luckyRow: { flexDirection: 'row', gap: 6, marginTop: t.spacing.sm, flexWrap: 'wrap' },
   luckyChip: { backgroundColor: 'rgba(15,14,13,0.55)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(214,168,72,0.35)' },
-  luckyKey: { color: theme.color.onSurfaceTertiary, fontSize: 9, letterSpacing: 0.6 },
-  luckyVal: { color: theme.color.brand, fontSize: 11, fontWeight: '700' },
+  luckyKey: { color: t.color.onSurfaceTertiary, fontSize: 9, letterSpacing: 0.6 },
+  luckyVal: { color: t.color.brand, fontSize: 11, fontWeight: '700' },
   // Quick
-  quickWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm, paddingHorizontal: theme.spacing.xl, marginTop: theme.spacing.lg },
-  quickCard: { width: '47%', backgroundColor: theme.color.surfaceSecondary, borderRadius: theme.radius.md, padding: theme.spacing.md, borderWidth: 1, borderColor: theme.color.border },
-  quickIcon: { width: 38, height: 38, borderRadius: theme.radius.md, backgroundColor: theme.color.brandTertiary, alignItems: 'center', justifyContent: 'center', marginBottom: theme.spacing.sm },
-  quickLabel: { color: theme.color.onSurface, fontSize: 15, fontWeight: '700' },
-  quickSub: { color: theme.color.onSurfaceTertiary, fontSize: 11, marginTop: 2 },
+  quickWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: t.spacing.sm, paddingHorizontal: t.spacing.xl, marginTop: t.spacing.lg },
+  quickCard: { width: '47%', backgroundColor: t.color.surfaceSecondary, borderRadius: t.radius.md, padding: t.spacing.md, borderWidth: 1, borderColor: t.color.border },
+  quickIcon: { width: 38, height: 38, borderRadius: t.radius.md, backgroundColor: t.color.brandTertiary, alignItems: 'center', justifyContent: 'center', marginBottom: t.spacing.sm },
+  quickLabel: { color: t.color.onSurface, fontSize: 15, fontWeight: '700' },
+  quickSub: { color: t.color.onSurfaceTertiary, fontSize: 11, marginTop: 2 },
   // Promo
-  promoBanner: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md, marginHorizontal: theme.spacing.xl, marginTop: theme.spacing.lg, padding: theme.spacing.md, borderRadius: theme.radius.md, backgroundColor: theme.color.brandTertiary, borderWidth: 1, borderColor: theme.color.brandSecondary },
-  promoIconBox: { width: 44, height: 44, borderRadius: theme.radius.md, backgroundColor: 'rgba(15,14,13,0.5)', alignItems: 'center', justifyContent: 'center' },
-  promoTitle: { color: theme.color.brand, fontWeight: '700', fontSize: 14 },
-  promoSub: { color: theme.color.onBrandTertiary, fontSize: 12, marginTop: 2 },
+  promoBanner: { flexDirection: 'row', alignItems: 'center', gap: t.spacing.md, marginHorizontal: t.spacing.xl, marginTop: t.spacing.lg, padding: t.spacing.md, borderRadius: t.radius.md, backgroundColor: t.color.brandTertiary, borderWidth: 1, borderColor: t.color.brandSecondary },
+  promoIconBox: { width: 44, height: 44, borderRadius: t.radius.md, backgroundColor: 'rgba(15,14,13,0.5)', alignItems: 'center', justifyContent: 'center' },
+  promoTitle: { color: t.color.brand, fontWeight: '700', fontSize: 14 },
+  promoSub: { color: t.color.onBrandTertiary, fontSize: 12, marginTop: 2 },
   // Live pulse
   pulseWrap: { width: 12, height: 12, alignItems: 'center', justifyContent: 'center' },
-  pulseRing: { position: 'absolute', width: 12, height: 12, borderRadius: 6, backgroundColor: theme.color.success, opacity: 0.35 },
-  pulseDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.color.success },
+  pulseRing: { position: 'absolute', width: 12, height: 12, borderRadius: 6, backgroundColor: t.color.success, opacity: 0.35 },
+  pulseDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: t.color.success },
   // Live cards
-  liveCard: { width: 140, padding: theme.spacing.sm, backgroundColor: theme.color.surfaceSecondary, borderRadius: theme.radius.md, borderWidth: 1, borderColor: theme.color.border },
+  liveCard: { width: 140, padding: t.spacing.sm, backgroundColor: t.color.surfaceSecondary, borderRadius: t.radius.md, borderWidth: 1, borderColor: t.color.border },
   liveAvatarWrap: { position: 'relative' },
-  liveAvatar: { width: '100%', aspectRatio: 1, borderRadius: theme.radius.md },
-  liveBadge: { position: 'absolute', top: 6, left: 6, backgroundColor: theme.color.error, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  liveAvatar: { width: '100%', aspectRatio: 1, borderRadius: t.radius.md },
+  liveBadge: { position: 'absolute', top: 6, left: 6, backgroundColor: t.color.error, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   liveBadgeText: { color: '#fff', fontSize: 9, fontWeight: '800', letterSpacing: 0.8 },
-  liveName: { color: theme.color.onSurface, fontWeight: '700', marginTop: 8, fontSize: 13 },
-  liveSpec: { color: theme.color.brand, fontSize: 11, marginTop: 2 },
+  liveName: { color: t.color.onSurface, fontWeight: '700', marginTop: 8, fontSize: 13 },
+  liveSpec: { color: t.color.brand, fontSize: 11, marginTop: 2 },
   rateRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 4 },
-  rateText: { color: theme.color.onSurface, fontSize: 11, fontWeight: '600' },
-  rateDot: { color: theme.color.onSurfaceTertiary, marginHorizontal: 2 },
+  rateText: { color: t.color.onSurface, fontSize: 11, fontWeight: '600' },
+  rateDot: { color: t.color.onSurfaceTertiary, marginHorizontal: 2 },
   // Concerns
-  concernsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm, paddingHorizontal: theme.spacing.xl },
-  concernCard: { width: '22.5%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: theme.color.surfaceSecondary, borderRadius: theme.radius.md, borderWidth: 1, borderColor: theme.color.border },
-  concernIcon: { width: 34, height: 34, borderRadius: 17, backgroundColor: theme.color.brandTertiary, alignItems: 'center', justifyContent: 'center' },
-  concernLabel: { color: theme.color.onSurface, fontSize: 11, fontWeight: '600' },
+  concernsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: t.spacing.sm, paddingHorizontal: t.spacing.xl },
+  concernCard: { width: '22.5%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: t.color.surfaceSecondary, borderRadius: t.radius.md, borderWidth: 1, borderColor: t.color.border },
+  concernIcon: { width: 34, height: 34, borderRadius: 17, backgroundColor: t.color.brandTertiary, alignItems: 'center', justifyContent: 'center' },
+  concernLabel: { color: t.color.onSurface, fontSize: 11, fontWeight: '600' },
   // Panchang
-  panchang: { marginHorizontal: theme.spacing.xl, padding: theme.spacing.lg, borderRadius: theme.radius.md, backgroundColor: theme.color.surfaceSecondary, borderWidth: 1, borderColor: theme.color.border },
-  panchangHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.md },
-  panchangDate: { color: theme.color.onSurface, fontWeight: '700' },
-  panchangSub: { color: theme.color.onSurfaceTertiary, fontSize: 11, marginTop: 2 },
-  auspiciousChip: { backgroundColor: theme.color.brand, paddingHorizontal: 10, paddingVertical: 4, borderRadius: theme.radius.pill },
-  auspiciousText: { color: theme.color.onBrandPrimary, fontWeight: '800', fontSize: 11, letterSpacing: 0.6 },
+  panchang: { marginHorizontal: t.spacing.xl, padding: t.spacing.lg, borderRadius: t.radius.md, backgroundColor: t.color.surfaceSecondary, borderWidth: 1, borderColor: t.color.border },
+  panchangHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: t.spacing.md },
+  panchangDate: { color: t.color.onSurface, fontWeight: '700' },
+  panchangSub: { color: t.color.onSurfaceTertiary, fontSize: 11, marginTop: 2 },
+  auspiciousChip: { backgroundColor: t.color.brand, paddingHorizontal: 10, paddingVertical: 4, borderRadius: t.radius.pill },
+  auspiciousText: { color: t.color.onBrandPrimary, fontWeight: '800', fontSize: 11, letterSpacing: 0.6 },
   panchangGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  panchangItem: { width: '32%', padding: theme.spacing.sm, backgroundColor: theme.color.surface, borderRadius: theme.radius.sm, borderWidth: 1, borderColor: theme.color.border },
-  pKey: { color: theme.color.onSurfaceTertiary, fontSize: 10, letterSpacing: 0.5 },
-  pVal: { color: theme.color.onSurface, fontSize: 13, fontWeight: '700', marginTop: 2 },
+  panchangItem: { width: '32%', padding: t.spacing.sm, backgroundColor: t.color.surface, borderRadius: t.radius.sm, borderWidth: 1, borderColor: t.color.border },
+  pKey: { color: t.color.onSurfaceTertiary, fontSize: 10, letterSpacing: 0.5 },
+  pVal: { color: t.color.onSurface, fontSize: 13, fontWeight: '700', marginTop: 2 },
   // Tarot
-  tarotCard: { marginHorizontal: theme.spacing.xl, height: 200, borderRadius: theme.radius.lg, overflow: 'hidden', borderWidth: 1, borderColor: theme.color.brandSecondary, justifyContent: 'center', alignItems: 'center' },
+  tarotCard: { marginHorizontal: t.spacing.xl, height: 200, borderRadius: t.radius.lg, overflow: 'hidden', borderWidth: 1, borderColor: t.color.brandSecondary, justifyContent: 'center', alignItems: 'center' },
   tarotBackContent: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
-  tarotBackGlyph: { color: theme.color.brand, fontSize: 64 },
-  tarotBackText: { color: theme.color.onSurfaceSecondary, letterSpacing: 1.5, fontSize: 12, fontWeight: '700' },
-  tarotFront: { padding: theme.spacing.xl, alignItems: 'center', gap: theme.spacing.sm },
-  tarotName: { color: theme.color.brand, fontSize: 26, fontFamily: theme.font.display },
-  tarotMeaning: { color: theme.color.onSurfaceSecondary, fontSize: 14, textAlign: 'center', lineHeight: 20 },
-  tarotHint: { color: theme.color.onSurfaceTertiary, fontSize: 10, marginTop: theme.spacing.sm },
+  tarotBackGlyph: { color: t.color.brand, fontSize: 64 },
+  tarotBackText: { color: t.color.onSurfaceSecondary, letterSpacing: 1.5, fontSize: 12, fontWeight: '700' },
+  tarotFront: { padding: t.spacing.xl, alignItems: 'center', gap: t.spacing.sm },
+  tarotName: { color: t.color.brand, fontSize: 26, fontFamily: t.font.display },
+  tarotMeaning: { color: t.color.onSurfaceSecondary, fontSize: 14, textAlign: 'center', lineHeight: 20 },
+  tarotHint: { color: t.color.onSurfaceTertiary, fontSize: 10, marginTop: t.spacing.sm },
   // Compat
-  compatCard: { marginHorizontal: theme.spacing.xl, padding: theme.spacing.lg, borderRadius: theme.radius.md, backgroundColor: theme.color.surfaceSecondary, borderWidth: 1, borderColor: theme.color.border },
-  compatRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: theme.spacing.md },
-  compatPill: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: theme.radius.md, backgroundColor: theme.color.brandTertiary, borderWidth: 1, borderColor: theme.color.brandSecondary },
-  compatSignText: { color: theme.color.brand, fontWeight: '700' },
+  compatCard: { marginHorizontal: t.spacing.xl, padding: t.spacing.lg, borderRadius: t.radius.md, backgroundColor: t.color.surfaceSecondary, borderWidth: 1, borderColor: t.color.border },
+  compatRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: t.spacing.md },
+  compatPill: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: t.radius.md, backgroundColor: t.color.brandTertiary, borderWidth: 1, borderColor: t.color.brandSecondary },
+  compatSignText: { color: t.color.brand, fontWeight: '700' },
   compatHeart: { alignItems: 'center', gap: 4 },
-  compatScore: { color: theme.color.onSurface, fontSize: 20, fontFamily: theme.font.display },
-  compatVerdict: { color: theme.color.onSurfaceSecondary, textAlign: 'center', fontSize: 13 },
-  compatChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: theme.radius.pill, backgroundColor: theme.color.surface, borderWidth: 1, borderColor: theme.color.borderStrong, flexShrink: 0 },
-  compatChipActive: { backgroundColor: theme.color.brand, borderColor: theme.color.brand },
-  compatChipText: { color: theme.color.onSurfaceSecondary, fontSize: 12, fontWeight: '600' },
+  compatScore: { color: t.color.onSurface, fontSize: 20, fontFamily: t.font.display },
+  compatVerdict: { color: t.color.onSurfaceSecondary, textAlign: 'center', fontSize: 13 },
+  compatChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: t.radius.pill, backgroundColor: t.color.surface, borderWidth: 1, borderColor: t.color.borderStrong, flexShrink: 0 },
+  compatChipActive: { backgroundColor: t.color.brand, borderColor: t.color.brand },
+  compatChipText: { color: t.color.onSurfaceSecondary, fontSize: 12, fontWeight: '600' },
   // Top astro row
-  topAstroRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md, marginHorizontal: theme.spacing.xl, marginBottom: theme.spacing.sm, padding: theme.spacing.md, backgroundColor: theme.color.surfaceSecondary, borderRadius: theme.radius.md, borderWidth: 1, borderColor: theme.color.border },
+  topAstroRow: { flexDirection: 'row', alignItems: 'center', gap: t.spacing.md, marginHorizontal: t.spacing.xl, marginBottom: t.spacing.sm, padding: t.spacing.md, backgroundColor: t.color.surfaceSecondary, borderRadius: t.radius.md, borderWidth: 1, borderColor: t.color.border },
   topAvatar: { width: 52, height: 52, borderRadius: 26 },
-  topName: { color: theme.color.onSurface, fontWeight: '700', fontSize: 15 },
-  topSpec: { color: theme.color.brand, fontSize: 11, marginTop: 2 },
+  topName: { color: t.color.onSurface, fontWeight: '700', fontSize: 15 },
+  topSpec: { color: t.color.brand, fontSize: 11, marginTop: 2 },
   topPrice: { alignItems: 'center' },
-  topPriceVal: { color: theme.color.brand, fontSize: 18, fontWeight: '800' },
-  topPriceMin: { color: theme.color.onSurfaceTertiary, fontSize: 10, marginTop: -3 },
+  topPriceVal: { color: t.color.brand, fontSize: 18, fontWeight: '800' },
+  topPriceMin: { color: t.color.onSurfaceTertiary, fontSize: 10, marginTop: -3 },
   // Testimonials
-  testCard: { width: 260, padding: theme.spacing.md, backgroundColor: theme.color.surfaceSecondary, borderRadius: theme.radius.md, borderWidth: 1, borderColor: theme.color.border, gap: 8 },
+  testCard: { width: 260, padding: t.spacing.md, backgroundColor: t.color.surfaceSecondary, borderRadius: t.radius.md, borderWidth: 1, borderColor: t.color.border, gap: 8 },
   testStars: { flexDirection: 'row', gap: 2 },
-  testText: { color: theme.color.onSurface, fontSize: 13, lineHeight: 19, fontStyle: 'italic' },
-  testAuthor: { color: theme.color.brand, fontSize: 11, fontWeight: '600' },
+  testText: { color: t.color.onSurface, fontSize: 13, lineHeight: 19, fontStyle: 'italic' },
+  testAuthor: { color: t.color.brand, fontSize: 11, fontWeight: '600' },
   // Wisdom
-  wisdomCard: { marginHorizontal: theme.spacing.xl, marginTop: theme.spacing.xxl, padding: theme.spacing.xl, borderRadius: theme.radius.md, backgroundColor: theme.color.brandTertiary, borderWidth: 1, borderColor: theme.color.brandSecondary, alignItems: 'center', gap: theme.spacing.sm },
-  wisdomQuote: { color: theme.color.brand, fontSize: 18, fontFamily: theme.font.display, textAlign: 'center', lineHeight: 24 },
-  wisdomHint: { color: theme.color.onBrandTertiary, fontSize: 11, letterSpacing: 0.8, textTransform: 'uppercase' },
-});
+  wisdomCard: { marginHorizontal: t.spacing.xl, marginTop: t.spacing.xxl, padding: t.spacing.xl, borderRadius: t.radius.md, backgroundColor: t.color.brandTertiary, borderWidth: 1, borderColor: t.color.brandSecondary, alignItems: 'center', gap: t.spacing.sm },
+  wisdomQuote: { color: t.color.brand, fontSize: 18, fontFamily: t.font.display, textAlign: 'center', lineHeight: 24 },
+  wisdomHint: { color: t.color.onBrandTertiary, fontSize: 11, letterSpacing: 0.8, textTransform: 'uppercase' },
+})
+  ), [t]);
+}

@@ -8,13 +8,14 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useIconFonts } from "@/src/hooks/use-icon-fonts";
 import { AuthProvider, useAuth } from '@/src/AuthContext';
-import { theme } from '@/src/theme';
+import { ThemeProvider, useTheme } from '@/src/ThemeContext';
 
 LogBox.ignoreAllLogs(true);
 SplashScreen.preventAutoHideAsync();
 
 function RootNav() {
   const { user, loading } = useAuth();
+  const t = useTheme();
   const segments = useSegments();
   const router = useRouter();
 
@@ -26,10 +27,24 @@ function RootNav() {
   }, [user, loading, segments]);
 
   if (loading) {
-    return <View style={{ flex: 1, backgroundColor: theme.color.surface }} />;
+    return <View style={{ flex: 1, backgroundColor: t.color.surface }} />;
   }
 
-  return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.color.surface } }} />;
+  return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: t.color.surface } }} />;
+}
+
+function ShellWithTheme() {
+  const t = useTheme();
+  return (
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: t.color.surface }}>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <StatusBar style={t.isDark ? 'light' : 'dark'} />
+          <RootNav />
+        </AuthProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
+  );
 }
 
 export default function RootLayout() {
@@ -44,13 +59,8 @@ export default function RootLayout() {
   if (!loaded && !error) return null;
 
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: theme.color.surface }}>
-      <SafeAreaProvider>
-        <AuthProvider>
-          <StatusBar style="light" />
-          <RootNav />
-        </AuthProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+    <ThemeProvider>
+      <ShellWithTheme />
+    </ThemeProvider>
   );
 }

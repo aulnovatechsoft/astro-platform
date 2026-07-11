@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -6,10 +6,12 @@ import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { theme } from '@/src/theme';
 import { api } from '@/src/api';
+import { useTheme } from '@/src/ThemeContext';
 
 export default function CallScreen() {
+  const t = useTheme();
+  const styles = useStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [astro, setAstro] = useState<any>(null);
@@ -31,7 +33,7 @@ export default function CallScreen() {
     return () => clearInterval(timer);
   }, [state]);
 
-  if (!astro) return <View style={styles.root}><ActivityIndicator color={theme.color.brand} style={{ marginTop: 100 }} /></View>;
+  if (!astro) return <View style={styles.root}><ActivityIndicator color={t.color.brand} style={{ marginTop: 100 }} /></View>;
 
   const mm = String(Math.floor(seconds / 60)).padStart(2, '0');
   const ss = String(seconds % 60).padStart(2, '0');
@@ -57,13 +59,13 @@ export default function CallScreen() {
 
         <View style={styles.controls}>
           <Pressable testID="mute-btn" style={[styles.ctrlBtn, muted && styles.ctrlActive]} onPress={() => setMuted((m) => !m)}>
-            <Ionicons name={muted ? 'mic-off' : 'mic'} size={22} color={muted ? theme.color.onBrandPrimary : theme.color.onSurface} />
+            <Ionicons name={muted ? 'mic-off' : 'mic'} size={22} color={muted ? t.color.onBrandPrimary : t.color.onSurface} />
           </Pressable>
           <Pressable testID="end-call-btn" style={styles.endBtn} onPress={() => { setState('ended'); router.back(); }}>
             <Ionicons name="call" size={26} color={'#fff'} style={{ transform: [{ rotate: '135deg' }] }} />
           </Pressable>
           <Pressable testID="speaker-btn" style={[styles.ctrlBtn, speaker && styles.ctrlActive]} onPress={() => setSpeaker((s) => !s)}>
-            <Ionicons name={speaker ? 'volume-high' : 'volume-medium'} size={22} color={speaker ? theme.color.onBrandPrimary : theme.color.onSurface} />
+            <Ionicons name={speaker ? 'volume-high' : 'volume-medium'} size={22} color={speaker ? t.color.onBrandPrimary : t.color.onSurface} />
           </Pressable>
         </View>
 
@@ -75,20 +77,25 @@ export default function CallScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: theme.color.surface },
-  top: { alignItems: 'center', paddingTop: theme.spacing.xl, gap: theme.spacing.xs },
-  label: { color: theme.color.brand, fontSize: 13, letterSpacing: 1.4, fontWeight: '700', textTransform: 'uppercase' },
-  timer: { color: theme.color.onSurface, fontSize: 40, fontFamily: theme.font.display },
-  middle: { alignItems: 'center', gap: theme.spacing.sm },
-  bigAvatar: { width: 180, height: 180, borderRadius: 90, borderWidth: 3, borderColor: theme.color.brand },
-  name: { color: theme.color.onSurface, fontSize: 28, fontFamily: theme.font.display, marginTop: theme.spacing.md },
-  specialty: { color: theme.color.brand, fontSize: 14 },
-  rate: { color: theme.color.onSurfaceTertiary, fontSize: 13, marginTop: 4 },
-  controls: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: theme.spacing.xl, paddingBottom: theme.spacing.xl },
+function useStyles() {
+  const t = useTheme();
+  return useMemo(() => (
+    StyleSheet.create({
+  root: { flex: 1, backgroundColor: t.color.surface },
+  top: { alignItems: 'center', paddingTop: t.spacing.xl, gap: t.spacing.xs },
+  label: { color: t.color.brand, fontSize: 13, letterSpacing: 1.4, fontWeight: '700', textTransform: 'uppercase' },
+  timer: { color: t.color.onSurface, fontSize: 40, fontFamily: t.font.display },
+  middle: { alignItems: 'center', gap: t.spacing.sm },
+  bigAvatar: { width: 180, height: 180, borderRadius: 90, borderWidth: 3, borderColor: t.color.brand },
+  name: { color: t.color.onSurface, fontSize: 28, fontFamily: t.font.display, marginTop: t.spacing.md },
+  specialty: { color: t.color.brand, fontSize: 14 },
+  rate: { color: t.color.onSurfaceTertiary, fontSize: 13, marginTop: 4 },
+  controls: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: t.spacing.xl, paddingBottom: t.spacing.xl },
   ctrlBtn: { width: 62, height: 62, borderRadius: 31, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
-  ctrlActive: { backgroundColor: theme.color.brand },
-  endBtn: { width: 74, height: 74, borderRadius: 37, backgroundColor: theme.color.error, alignItems: 'center', justifyContent: 'center' },
-  footerHint: { position: 'absolute', bottom: 4, left: 20, right: 20, borderRadius: theme.radius.pill, padding: 10, alignItems: 'center', overflow: 'hidden' },
-  hintText: { color: theme.color.onSurfaceTertiary, fontSize: 11 },
-});
+  ctrlActive: { backgroundColor: t.color.brand },
+  endBtn: { width: 74, height: 74, borderRadius: 37, backgroundColor: t.color.error, alignItems: 'center', justifyContent: 'center' },
+  footerHint: { position: 'absolute', bottom: 4, left: 20, right: 20, borderRadius: t.radius.pill, padding: 10, alignItems: 'center', overflow: 'hidden' },
+  hintText: { color: t.color.onSurfaceTertiary, fontSize: 11 },
+})
+  ), [t]);
+}

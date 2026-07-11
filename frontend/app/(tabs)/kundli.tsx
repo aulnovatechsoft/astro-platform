@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { theme } from '@/src/theme';
 import { api } from '@/src/api';
+import { useTheme } from '@/src/ThemeContext';
 
 const ZODIAC_ICONS: Record<string, string> = {
   Aries: '♈', Taurus: '♉', Gemini: '♊', Cancer: '♋', Leo: '♌', Virgo: '♍',
@@ -11,6 +11,8 @@ const ZODIAC_ICONS: Record<string, string> = {
 };
 
 export default function Kundli() {
+  const t = useTheme();
+  const styles = useStyles();
   const [zodiacs, setZodiacs] = useState<any[]>([]);
   const [selected, setSelected] = useState<any>(null);
   const [reading, setReading] = useState<any>(null);
@@ -67,7 +69,7 @@ export default function Kundli() {
 
             {selected && (
               <View style={styles.readingCard} testID="horoscope-reading">
-                {loadingReading ? <ActivityIndicator color={theme.color.brand} /> : (
+                {loadingReading ? <ActivityIndicator color={t.color.brand} /> : (
                   <>
                     <View style={styles.readingHeader}>
                       <Text style={styles.readingSign}>{selected.sign} · {selected.element}</Text>
@@ -82,21 +84,21 @@ export default function Kundli() {
             <Text style={styles.sectionTitle}>Generate your Kundli</Text>
             <View style={styles.formCard}>
               <Text style={styles.label}>Full name</Text>
-              <TextInput testID="kundli-name" style={styles.input} value={name} onChangeText={setName} placeholder="Your full name" placeholderTextColor={theme.color.muted} />
+              <TextInput testID="kundli-name" style={styles.input} value={name} onChangeText={setName} placeholder="Your full name" placeholderTextColor={t.color.muted} />
               <Text style={styles.label}>Date of birth (YYYY-MM-DD)</Text>
-              <TextInput testID="kundli-date" style={styles.input} value={date} onChangeText={setDate} placeholder="1995-06-15" placeholderTextColor={theme.color.muted} />
+              <TextInput testID="kundli-date" style={styles.input} value={date} onChangeText={setDate} placeholder="1995-06-15" placeholderTextColor={t.color.muted} />
               <Text style={styles.label}>Time of birth (HH:MM)</Text>
-              <TextInput testID="kundli-time" style={styles.input} value={time} onChangeText={setTime} placeholder="08:30" placeholderTextColor={theme.color.muted} />
+              <TextInput testID="kundli-time" style={styles.input} value={time} onChangeText={setTime} placeholder="08:30" placeholderTextColor={t.color.muted} />
               <Text style={styles.label}>Place of birth</Text>
-              <TextInput testID="kundli-place" style={styles.input} value={place} onChangeText={setPlace} placeholder="City, Country" placeholderTextColor={theme.color.muted} />
+              <TextInput testID="kundli-place" style={styles.input} value={place} onChangeText={setPlace} placeholder="City, Country" placeholderTextColor={t.color.muted} />
               <Pressable
                 testID="generate-kundli-btn"
                 style={styles.generateBtn}
                 onPress={generateKundli}
                 disabled={kundliBusy}
               >
-                {kundliBusy ? <ActivityIndicator color={theme.color.onBrandPrimary} /> :
-                  <><Ionicons name="planet" size={16} color={theme.color.onBrandPrimary} /><Text style={styles.generateText}>Calculate Chart</Text></>}
+                {kundliBusy ? <ActivityIndicator color={t.color.onBrandPrimary} /> :
+                  <><Ionicons name="planet" size={16} color={t.color.onBrandPrimary} /><Text style={styles.generateText}>Calculate Chart</Text></>}
               </Pressable>
             </View>
 
@@ -125,43 +127,48 @@ export default function Kundli() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: theme.color.surface },
-  headerWrap: { paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md, paddingBottom: theme.spacing.md },
-  title: { color: theme.color.onSurface, fontSize: 30, fontFamily: theme.font.display },
-  subtitle: { color: theme.color.onSurfaceTertiary, marginTop: 4 },
-  sectionTitle: { color: theme.color.onSurface, fontSize: 18, fontFamily: theme.font.display, paddingHorizontal: theme.spacing.xl, marginTop: theme.spacing.xl, marginBottom: theme.spacing.md },
-  zodiacRow: { paddingHorizontal: theme.spacing.xl, gap: theme.spacing.sm },
+function useStyles() {
+  const t = useTheme();
+  return useMemo(() => (
+    StyleSheet.create({
+  root: { flex: 1, backgroundColor: t.color.surface },
+  headerWrap: { paddingHorizontal: t.spacing.xl, paddingTop: t.spacing.md, paddingBottom: t.spacing.md },
+  title: { color: t.color.onSurface, fontSize: 30, fontFamily: t.font.display },
+  subtitle: { color: t.color.onSurfaceTertiary, marginTop: 4 },
+  sectionTitle: { color: t.color.onSurface, fontSize: 18, fontFamily: t.font.display, paddingHorizontal: t.spacing.xl, marginTop: t.spacing.xl, marginBottom: t.spacing.md },
+  zodiacRow: { paddingHorizontal: t.spacing.xl, gap: t.spacing.sm },
   signCard: {
-    width: 70, height: 90, borderRadius: theme.radius.md, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: theme.color.surfaceSecondary, borderWidth: 1, borderColor: theme.color.border,
+    width: 70, height: 90, borderRadius: t.radius.md, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: t.color.surfaceSecondary, borderWidth: 1, borderColor: t.color.border,
     gap: 6,
   },
-  signCardActive: { borderColor: theme.color.brand, backgroundColor: theme.color.brandTertiary },
-  signGlyph: { fontSize: 28, color: theme.color.brand },
-  signName: { color: theme.color.onSurfaceSecondary, fontSize: 11, fontWeight: '600' },
+  signCardActive: { borderColor: t.color.brand, backgroundColor: t.color.brandTertiary },
+  signGlyph: { fontSize: 28, color: t.color.brand },
+  signName: { color: t.color.onSurfaceSecondary, fontSize: 11, fontWeight: '600' },
   readingCard: {
-    margin: theme.spacing.xl, marginTop: theme.spacing.md,
-    padding: theme.spacing.lg, borderRadius: theme.radius.md,
-    backgroundColor: theme.color.surfaceSecondary, borderWidth: 1, borderColor: theme.color.border,
+    margin: t.spacing.xl, marginTop: t.spacing.md,
+    padding: t.spacing.lg, borderRadius: t.radius.md,
+    backgroundColor: t.color.surfaceSecondary, borderWidth: 1, borderColor: t.color.border,
   },
-  readingHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: theme.spacing.sm },
-  readingSign: { color: theme.color.brand, fontWeight: '700' },
-  readingDate: { color: theme.color.onSurfaceTertiary, fontSize: 12 },
-  readingText: { color: theme.color.onSurfaceSecondary, fontSize: 15, lineHeight: 22 },
-  formCard: { marginHorizontal: theme.spacing.xl, padding: theme.spacing.lg, borderRadius: theme.radius.md, backgroundColor: theme.color.surfaceSecondary, borderWidth: 1, borderColor: theme.color.border, gap: theme.spacing.sm },
-  label: { color: theme.color.onSurfaceTertiary, fontSize: 12, marginTop: theme.spacing.xs },
-  input: { backgroundColor: theme.color.surface, color: theme.color.onSurface, borderRadius: theme.radius.md, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: theme.color.border, fontSize: 15 },
-  generateBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: theme.color.brand, paddingVertical: 14, borderRadius: theme.radius.pill, marginTop: theme.spacing.md },
-  generateText: { color: theme.color.onBrandPrimary, fontWeight: '700' },
-  kundliResult: { margin: theme.spacing.xl, padding: theme.spacing.lg, borderRadius: theme.radius.md, backgroundColor: theme.color.brandTertiary, borderWidth: 1, borderColor: theme.color.brandSecondary, gap: theme.spacing.md },
+  readingHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: t.spacing.sm },
+  readingSign: { color: t.color.brand, fontWeight: '700' },
+  readingDate: { color: t.color.onSurfaceTertiary, fontSize: 12 },
+  readingText: { color: t.color.onSurfaceSecondary, fontSize: 15, lineHeight: 22 },
+  formCard: { marginHorizontal: t.spacing.xl, padding: t.spacing.lg, borderRadius: t.radius.md, backgroundColor: t.color.surfaceSecondary, borderWidth: 1, borderColor: t.color.border, gap: t.spacing.sm },
+  label: { color: t.color.onSurfaceTertiary, fontSize: 12, marginTop: t.spacing.xs },
+  input: { backgroundColor: t.color.surface, color: t.color.onSurface, borderRadius: t.radius.md, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: t.color.border, fontSize: 15 },
+  generateBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: t.color.brand, paddingVertical: 14, borderRadius: t.radius.pill, marginTop: t.spacing.md },
+  generateText: { color: t.color.onBrandPrimary, fontWeight: '700' },
+  kundliResult: { margin: t.spacing.xl, padding: t.spacing.lg, borderRadius: t.radius.md, backgroundColor: t.color.brandTertiary, borderWidth: 1, borderColor: t.color.brandSecondary, gap: t.spacing.md },
   kundliHead: {},
-  kundliName: { color: theme.color.brand, fontSize: 20, fontFamily: theme.font.display },
-  kundliMeta: { color: theme.color.onBrandTertiary, fontSize: 12, marginTop: 4 },
-  kundliSummary: { color: theme.color.onSurface, lineHeight: 20 },
-  planetsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm, marginTop: theme.spacing.sm },
-  planet: { width: '30%', padding: theme.spacing.sm, backgroundColor: 'rgba(15,14,13,0.4)', borderRadius: theme.radius.sm },
-  planetName: { color: theme.color.brand, fontSize: 12, fontWeight: '700' },
-  planetSign: { color: theme.color.onSurface, fontSize: 13, marginTop: 2 },
-  planetHouse: { color: theme.color.onSurfaceTertiary, fontSize: 10, marginTop: 2 },
-});
+  kundliName: { color: t.color.brand, fontSize: 20, fontFamily: t.font.display },
+  kundliMeta: { color: t.color.onBrandTertiary, fontSize: 12, marginTop: 4 },
+  kundliSummary: { color: t.color.onSurface, lineHeight: 20 },
+  planetsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: t.spacing.sm, marginTop: t.spacing.sm },
+  planet: { width: '30%', padding: t.spacing.sm, backgroundColor: 'rgba(15,14,13,0.4)', borderRadius: t.radius.sm },
+  planetName: { color: t.color.brand, fontSize: 12, fontWeight: '700' },
+  planetSign: { color: t.color.onSurface, fontSize: 13, marginTop: 2 },
+  planetHouse: { color: t.color.onSurfaceTertiary, fontSize: 10, marginTop: 2 },
+})
+  ), [t]);
+}

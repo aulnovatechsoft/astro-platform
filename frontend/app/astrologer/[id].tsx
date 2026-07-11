@@ -1,15 +1,17 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
-import { theme } from '@/src/theme';
 import { api } from '@/src/api';
 import { useAuth } from '@/src/AuthContext';
+import { useTheme } from '@/src/ThemeContext';
 
 export default function AstroDetail() {
+  const t = useTheme();
+  const styles = useStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { user, refresh } = useAuth();
@@ -45,19 +47,19 @@ export default function AstroDetail() {
     setStarting(null);
   };
 
-  if (!astro) return <View style={styles.root}><ActivityIndicator color={theme.color.brand} style={{ marginTop: 100 }} /></View>;
+  if (!astro) return <View style={styles.root}><ActivityIndicator color={t.color.brand} style={{ marginTop: 100 }} /></View>;
 
   return (
     <View style={styles.root}>
       <View style={styles.cover}>
         <Image source={astro.avatar} style={StyleSheet.absoluteFill} contentFit="cover" />
-        <LinearGradient colors={['rgba(15,14,13,0)', 'rgba(15,14,13,0.85)', theme.color.surface]} locations={[0, 0.7, 1]} style={StyleSheet.absoluteFill} />
+        <LinearGradient colors={['rgba(15,14,13,0)', 'rgba(15,14,13,0.85)', t.color.surface]} locations={[0, 0.7, 1]} style={StyleSheet.absoluteFill} />
         <SafeAreaView edges={['top']} style={styles.coverHeader}>
           <Pressable testID="back-btn" onPress={() => router.back()} style={styles.iconBtn}>
-            <Ionicons name="chevron-back" size={22} color={theme.color.onSurface} />
+            <Ionicons name="chevron-back" size={22} color={t.color.onSurface} />
           </Pressable>
           <Pressable style={styles.iconBtn}>
-            <Ionicons name="heart-outline" size={22} color={theme.color.onSurface} />
+            <Ionicons name="heart-outline" size={22} color={t.color.onSurface} />
           </Pressable>
         </SafeAreaView>
       </View>
@@ -86,7 +88,7 @@ export default function AstroDetail() {
           <View style={styles.dividerV} />
           <View style={styles.metric}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Ionicons name="star" size={16} color={theme.color.brand} />
+              <Ionicons name="star" size={16} color={t.color.brand} />
               <Text style={styles.metricValue}>{astro.rating.toFixed(1)}</Text>
             </View>
             <Text style={styles.metricLabel}>{astro.reviews_count.toLocaleString()} reviews</Text>
@@ -104,7 +106,7 @@ export default function AstroDetail() {
           {(astro.reviews || []).map((r: any) => (
             <View key={r.review_id} style={styles.reviewCard}>
               <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
-                {Array.from({ length: r.rating }).map((_, i) => (<Ionicons key={i} name="star" size={12} color={theme.color.brand} />))}
+                {Array.from({ length: r.rating }).map((_, i) => (<Ionicons key={i} name="star" size={12} color={t.color.brand} />))}
                 <Text style={styles.reviewName}>· {r.user_name}</Text>
               </View>
               <Text style={styles.reviewText}>{r.comment}</Text>
@@ -120,9 +122,9 @@ export default function AstroDetail() {
           onPress={startChat}
           disabled={!!starting}
         >
-          {starting === 'chat' ? <ActivityIndicator color={theme.color.onBrandPrimary} /> : (
+          {starting === 'chat' ? <ActivityIndicator color={t.color.onBrandPrimary} /> : (
             <>
-              <Ionicons name="chatbubble" size={16} color={theme.color.onBrandPrimary} />
+              <Ionicons name="chatbubble" size={16} color={t.color.onBrandPrimary} />
               <Text style={styles.ctaText}>Chat · ${astro.price_per_min}/min</Text>
             </>
           )}
@@ -133,41 +135,46 @@ export default function AstroDetail() {
           onPress={startCall}
           disabled={!!starting}
         >
-          <Ionicons name="call" size={16} color={theme.color.brand} />
-          <Text style={[styles.ctaText, { color: theme.color.brand }]}>Call</Text>
+          <Ionicons name="call" size={16} color={t.color.brand} />
+          <Text style={[styles.ctaText, { color: t.color.brand }]}>Call</Text>
         </Pressable>
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: theme.color.surface },
+function useStyles() {
+  const t = useTheme();
+  return useMemo(() => (
+    StyleSheet.create({
+  root: { flex: 1, backgroundColor: t.color.surface },
   cover: { height: 380 },
-  coverHeader: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: theme.spacing.lg },
+  coverHeader: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: t.spacing.lg },
   iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(15,14,13,0.6)', alignItems: 'center', justifyContent: 'center' },
   scroll: { flex: 1, marginTop: -100 },
-  headerBlock: { paddingHorizontal: theme.spacing.xl, paddingBottom: theme.spacing.md },
-  name: { color: theme.color.onSurface, fontSize: 32, fontFamily: theme.font.display },
-  specs: { color: theme.color.brand, marginTop: 4, fontWeight: '600' },
-  langRow: { flexDirection: 'row', gap: 6, marginTop: theme.spacing.sm, flexWrap: 'wrap' },
-  langChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: theme.radius.pill, backgroundColor: theme.color.surfaceSecondary, borderWidth: 1, borderColor: theme.color.border },
-  langText: { color: theme.color.onSurfaceSecondary, fontSize: 11 },
-  metrics: { flexDirection: 'row', marginHorizontal: theme.spacing.xl, padding: theme.spacing.lg, backgroundColor: theme.color.surfaceSecondary, borderRadius: theme.radius.md, borderWidth: 1, borderColor: theme.color.border },
+  headerBlock: { paddingHorizontal: t.spacing.xl, paddingBottom: t.spacing.md },
+  name: { color: t.color.onSurface, fontSize: 32, fontFamily: t.font.display },
+  specs: { color: t.color.brand, marginTop: 4, fontWeight: '600' },
+  langRow: { flexDirection: 'row', gap: 6, marginTop: t.spacing.sm, flexWrap: 'wrap' },
+  langChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: t.radius.pill, backgroundColor: t.color.surfaceSecondary, borderWidth: 1, borderColor: t.color.border },
+  langText: { color: t.color.onSurfaceSecondary, fontSize: 11 },
+  metrics: { flexDirection: 'row', marginHorizontal: t.spacing.xl, padding: t.spacing.lg, backgroundColor: t.color.surfaceSecondary, borderRadius: t.radius.md, borderWidth: 1, borderColor: t.color.border },
   metric: { flex: 1, alignItems: 'center', gap: 4 },
-  metricValue: { color: theme.color.onSurface, fontSize: 18, fontWeight: '700' },
-  metricLabel: { color: theme.color.onSurfaceTertiary, fontSize: 11 },
-  dividerV: { width: 1, backgroundColor: theme.color.border },
-  section: { paddingHorizontal: theme.spacing.xl, marginTop: theme.spacing.xl, gap: theme.spacing.sm },
-  sectionTitle: { color: theme.color.onSurface, fontSize: 18, fontFamily: theme.font.display },
-  bio: { color: theme.color.onSurfaceSecondary, lineHeight: 22, fontSize: 14 },
-  reviewCard: { padding: theme.spacing.md, backgroundColor: theme.color.surfaceSecondary, borderRadius: theme.radius.md, borderWidth: 1, borderColor: theme.color.border, gap: 6 },
-  reviewName: { color: theme.color.onSurfaceTertiary, fontSize: 12 },
-  reviewText: { color: theme.color.onSurfaceSecondary, fontSize: 13 },
-  emptyReview: { color: theme.color.onSurfaceTertiary, fontSize: 13, fontStyle: 'italic' },
-  ctaBar: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', gap: theme.spacing.sm, paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md, paddingBottom: theme.spacing.xl, backgroundColor: theme.color.surface, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.color.border },
-  cta: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: theme.radius.pill },
-  ctaPrimary: { backgroundColor: theme.color.brand, flex: 2 },
-  ctaSecondary: { borderWidth: 1, borderColor: theme.color.brand },
-  ctaText: { color: theme.color.onBrandPrimary, fontWeight: '700' },
-});
+  metricValue: { color: t.color.onSurface, fontSize: 18, fontWeight: '700' },
+  metricLabel: { color: t.color.onSurfaceTertiary, fontSize: 11 },
+  dividerV: { width: 1, backgroundColor: t.color.border },
+  section: { paddingHorizontal: t.spacing.xl, marginTop: t.spacing.xl, gap: t.spacing.sm },
+  sectionTitle: { color: t.color.onSurface, fontSize: 18, fontFamily: t.font.display },
+  bio: { color: t.color.onSurfaceSecondary, lineHeight: 22, fontSize: 14 },
+  reviewCard: { padding: t.spacing.md, backgroundColor: t.color.surfaceSecondary, borderRadius: t.radius.md, borderWidth: 1, borderColor: t.color.border, gap: 6 },
+  reviewName: { color: t.color.onSurfaceTertiary, fontSize: 12 },
+  reviewText: { color: t.color.onSurfaceSecondary, fontSize: 13 },
+  emptyReview: { color: t.color.onSurfaceTertiary, fontSize: 13, fontStyle: 'italic' },
+  ctaBar: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', gap: t.spacing.sm, paddingHorizontal: t.spacing.xl, paddingTop: t.spacing.md, paddingBottom: t.spacing.xl, backgroundColor: t.color.surface, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.color.border },
+  cta: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: t.radius.pill },
+  ctaPrimary: { backgroundColor: t.color.brand, flex: 2 },
+  ctaSecondary: { borderWidth: 1, borderColor: t.color.brand },
+  ctaText: { color: t.color.onBrandPrimary, fontWeight: '700' },
+})
+  ), [t]);
+}
