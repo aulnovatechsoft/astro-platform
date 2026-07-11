@@ -101,3 +101,120 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "Run a security audit on the deployed Aura Astrology app and patch Critical/High issues without compromising UX. Next milestone: WebRTC voice/video."
+
+backend:
+  - task: "SEC-001 — Real per-phone OTP (replaces universal 123456)"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Added SHA-256 hashed (peppered) 6-digit OTP, 5-min expiry, single-use, 5-attempt lockout, per-phone & per-IP request throttling. DEV_OTP env flag surfaces code in response so demo works without SMS gateway."
+      - working: true
+        agent: "testing"
+        comment: "29 dedicated tests pass — universal 123456 blocked, single-use enforced, lockout on 5 wrong attempts, 429 on 4th same-phone request in window, cross-phone codes distinct."
+
+  - task: "SEC-002 — Wallet top-up daily & lifetime caps"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Enforces max 3 top-ups per 24h AND ₹500 amount per 24h AND ₹2000 lifetime demo cap, plus 6/min rate limit. Will be replaced by Razorpay intent+webhook in the next milestone."
+      - working: true
+        agent: "testing"
+        comment: "All caps trigger correctly; 429 on count/amount, 400 on invalid amount, 403 on lifetime cap."
+
+  - task: "SEC-003 — Order price derived from server catalog"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "New `_lookup_catalog_item` derives label + price_inr from REMEDIES_DATA by (item_type, item_key). Client-supplied values ignored. Invalid type → 400, unknown key → 404."
+      - working: true
+        agent: "testing"
+        comment: "Client price/label spoofing blocked — order stored with catalog values."
+
+  - task: "SEC-004 — Reviews bound to real user chat"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "chat_id now required. Verifies chat exists, belongs to user, matches astrologer_id, and has ≥1 user message. One review per chat. user_name derived server-side. Rate-limited 10/hr."
+      - working: true
+        agent: "testing"
+        comment: "Missing chat_id → 400, fake chat → 404, no msgs → 400, cross-user → 403, duplicate → 409, out-of-range rating → 400/422."
+
+  - task: "CORS hardening (P3)"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "low"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "allow_credentials=False (safe with bearer auth). Origins configurable via CORS_ORIGINS env (falls back to *)."
+
+frontend:
+  - task: "Login screen — show rotating dev OTP, remove hard-coded 123456 hint"
+    implemented: true
+    working: true
+    file: "frontend/app/(auth)/login.tsx, frontend/src/AuthContext.tsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "requestOtp() now returns the per-phone dev_otp when present. Login screen displays it in the OTP label and auto-fills the input for demo convenience. No UI regression."
+
+  - task: "Wallet + Pooja order screens — updated copy/payloads for server-side price"
+    implemented: true
+    working: true
+    file: "frontend/app/wallet.tsx, frontend/app/pooja/[key].tsx"
+    stuck_count: 0
+    priority: "low"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Wallet copy notes daily & lifetime caps. Order call unchanged in shape (still sends label/price for backward compat) but they are ignored server-side."
+
+metadata:
+  created_by: "main_agent"
+  version: "1.1"
+  test_sequence: 3
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Security patches verified end-to-end (52/52 backend tests pass)."
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: "Security audit complete. Report saved to /app/SECURITY_AUDIT.md. All 4 findings (1 CRITICAL, 1 HIGH, 2 MEDIUM) patched + 1 P3 hardening. Backend regression suite: 52/52 pass. Next milestone: WebRTC voice/video."
