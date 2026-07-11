@@ -103,6 +103,7 @@ SEED_ASTROLOGERS = [
     {
         "astrologer_id": "astro_1",
         "name": "Anaya Sharma",
+        "gender": "female",
         "avatar": "https://images.unsplash.com/photo-1773595034105-4a53b9280308?crop=entropy&cs=srgb&fm=jpg&w=400&q=80",
         "specialties": ["Vedic", "Marriage", "Career"],
         "languages": ["English", "Hindi"],
@@ -117,6 +118,7 @@ SEED_ASTROLOGERS = [
     {
         "astrologer_id": "astro_2",
         "name": "Rowan Vale",
+        "gender": "female",
         "avatar": "https://images.unsplash.com/photo-1628479941723-0859e4b844c6?crop=entropy&cs=srgb&fm=jpg&w=400&q=80",
         "specialties": ["Tarot", "Love", "Intuitive"],
         "languages": ["English"],
@@ -131,6 +133,7 @@ SEED_ASTROLOGERS = [
     {
         "astrologer_id": "astro_3",
         "name": "Kabir Rathore",
+        "gender": "male",
         "avatar": "https://images.unsplash.com/photo-1552058544-f2b08422138a?w=400&q=80",
         "specialties": ["Numerology", "Business", "Finance"],
         "languages": ["English", "Hindi", "Marathi"],
@@ -145,20 +148,22 @@ SEED_ASTROLOGERS = [
     {
         "astrologer_id": "astro_4",
         "name": "Selene Moon",
+        "gender": "female",
         "avatar": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&q=80",
-        "specialties": ["Palmistry", "Spiritual Healing"],
+        "specialties": ["Palmistry", "Face Reading", "Spiritual Healing"],
         "languages": ["English", "Spanish"],
         "experience_years": 10,
         "rating": 4.9,
         "reviews_count": 980,
         "price_per_min": 35.0,
-        "bio": "Selene reads palms and auras with a healer's touch, guiding clients back to their spiritual center.",
+        "bio": "Selene reads palms, faces, and auras with a healer's touch, guiding clients back to their spiritual center.",
         "is_online": True,
         "orders": 2140,
     },
     {
         "astrologer_id": "astro_5",
         "name": "Arjun Deshmukh",
+        "gender": "male",
         "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80",
         "specialties": ["KP System", "Career", "Education"],
         "languages": ["English", "Hindi"],
@@ -173,6 +178,7 @@ SEED_ASTROLOGERS = [
     {
         "astrologer_id": "astro_6",
         "name": "Iris Nightingale",
+        "gender": "female",
         "avatar": "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&q=80",
         "specialties": ["Tarot", "Dream Interpretation"],
         "languages": ["English"],
@@ -183,6 +189,36 @@ SEED_ASTROLOGERS = [
         "bio": "Iris weaves tarot with dream symbolism to reveal what the subconscious already knows.",
         "is_online": False,
         "orders": 1420,
+    },
+    {
+        "astrologer_id": "astro_7",
+        "name": "Master Chen Wei",
+        "gender": "male",
+        "avatar": "https://images.unsplash.com/photo-1519058082700-08a0b56da9b4?w=400&q=80",
+        "specialties": ["Face Reading", "Vedic", "Career"],
+        "languages": ["English", "Mandarin"],
+        "experience_years": 22,
+        "rating": 4.9,
+        "reviews_count": 2870,
+        "price_per_min": 45.0,
+        "bio": "Master Chen practices Mien Shiang — the ancient art of face reading — combined with Vedic wisdom to reveal life patterns hidden in your features.",
+        "is_online": True,
+        "orders": 6320,
+    },
+    {
+        "astrologer_id": "astro_8",
+        "name": "Maya Ferreira",
+        "gender": "female",
+        "avatar": "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=401&q=80",
+        "specialties": ["Palmistry", "Numerology"],
+        "languages": ["English", "Portuguese"],
+        "experience_years": 9,
+        "rating": 4.7,
+        "reviews_count": 1180,
+        "price_per_min": 28.0,
+        "bio": "Maya combines the intuitive lines of the palm with the precision of numerology to guide you through pivotal decisions.",
+        "is_online": True,
+        "orders": 2650,
     },
 ]
 
@@ -415,10 +451,14 @@ async def auth_logout(authorization: Optional[str] = Header(None)):
 
 # ---------- Astrologers ----------
 @api_router.get("/astrologers")
-async def list_astrologers(specialty: Optional[str] = None):
-    q = {}
+async def list_astrologers(specialty: Optional[str] = None, gender: Optional[str] = None):
+    q: dict = {}
     if specialty and specialty.lower() != 'all':
-        q = {"specialties": {"$regex": f"^{specialty}$", "$options": "i"}}
+        # Escape regex special chars so multi-word specialties like "Face Reading" match literally
+        import re as _re
+        q["specialties"] = {"$regex": f"^{_re.escape(specialty)}$", "$options": "i"}
+    if gender and gender.lower() != 'all':
+        q["gender"] = gender.lower()
     astros = await db.astrologers.find(q, {"_id": 0}).to_list(100)
     return astros
 
