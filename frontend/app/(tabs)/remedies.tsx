@@ -4,7 +4,9 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { useTheme } from '@/src/ThemeContext';
+import { api } from '@/src/api';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -97,18 +99,32 @@ const DOSHAS = [
 export default function Remedies() {
   const t = useTheme();
   const styles = useStyles();
+  const router = useRouter();
   const [offerIdx, setOfferIdx] = useState(0);
   const offerRef = useRef<FlatList>(null);
+  const [data, setData] = useState<any | null>(null);
+
+  useEffect(() => {
+    api.get('/api/remedies').then(setData).catch(() => {});
+  }, []);
+
+  const offers = data?.offers ?? OFFERS;
+  const store = data?.store ?? STORE;
+  const poojas = data?.poojas ?? POOJAS;
+  const topSelling = data?.top_selling ?? TOP_SELLING;
+  const newlyLaunched = data?.newly_launched ?? NEWLY_LAUNCHED;
+  const doshas = data?.doshas ?? DOSHAS;
 
   // Auto-rotate offers every 5s
   useEffect(() => {
+    if (offers.length === 0) return;
     const id = setInterval(() => {
-      const next = (offerIdx + 1) % OFFERS.length;
+      const next = (offerIdx + 1) % offers.length;
       offerRef.current?.scrollToIndex({ index: next, animated: true });
       setOfferIdx(next);
     }, 5000);
     return () => clearInterval(id);
-  }, [offerIdx]);
+  }, [offerIdx, offers.length]);
 
   const onOfferScroll = (e: any) => {
     const x = e.nativeEvent.contentOffset.x;
@@ -127,7 +143,7 @@ export default function Remedies() {
               <Text style={styles.brand}>Remedies</Text>
             </View>
             <View style={styles.headerActions}>
-              <Pressable style={styles.orderPill} testID="orders-btn">
+              <Pressable style={styles.orderPill} testID="orders-btn" onPress={() => router.push('/orders' as any)}>
                 <Ionicons name="time-outline" size={14} color={t.color.brand} />
                 <Text style={styles.orderText}>Orders</Text>
               </Pressable>
@@ -140,7 +156,7 @@ export default function Remedies() {
           {/* Offer carousel */}
           <FlatList
             ref={offerRef}
-            data={OFFERS}
+            data={offers}
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
@@ -159,8 +175,12 @@ export default function Remedies() {
                   <View style={styles.offerTag}><Text style={styles.offerTagText}>{item.tag}</Text></View>
                   <Text style={styles.offerTitle}>{item.title}</Text>
                   <Text style={styles.offerSub}>{item.subtitle}</Text>
-                  <Text style={styles.offerPrice}>{item.price}</Text>
-                  <Pressable style={styles.offerCta}>
+                  <Text style={styles.offerPrice}>at just ₹{item.price_inr ?? item.price}/-</Text>
+                  <Pressable
+                    style={styles.offerCta}
+                    testID={`offer-book-${item.id}`}
+                    onPress={() => router.push(`/pooja/${item.id}?type=offer` as any)}
+                  >
                     <Ionicons name="arrow-forward" size={12} color={t.color.onBrandPrimary} />
                     <Text style={styles.offerCtaText}>{item.cta}</Text>
                   </Pressable>
@@ -169,7 +189,7 @@ export default function Remedies() {
             )}
           />
           <View style={styles.dots}>
-            {OFFERS.map((_, i) => (
+            {offers.map((_: any, i: number) => (
               <View key={i} style={[styles.dot, i === offerIdx && styles.dotActive]} />
             ))}
           </View>
@@ -191,7 +211,7 @@ export default function Remedies() {
             <Pressable testID="visit-store"><Text style={styles.seeAll}>Visit Store</Text></Pressable>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.storeRow}>
-            {STORE.map((s) => (
+            {store.map((s: any) => (
               <Pressable key={s.key} testID={`store-${s.key}`} style={styles.storeCard}>
                 <Image source={s.image} style={styles.storeImg} contentFit="cover" />
                 <Text style={styles.storeLabel}>{s.label}</Text>
@@ -202,8 +222,13 @@ export default function Remedies() {
           {/* Poojas grid */}
           <Text style={[styles.sectionTitle, { marginTop: t.spacing.xxl, paddingHorizontal: t.spacing.xl, marginBottom: t.spacing.md }]}>Poojas & rituals</Text>
           <View style={styles.poojaGrid}>
-            {POOJAS.map((p) => (
-              <Pressable key={p.key} testID={`pooja-${p.key}`} style={styles.poojaCard}>
+            {poojas.map((p: any) => (
+              <Pressable
+                key={p.key}
+                testID={`pooja-${p.key}`}
+                style={styles.poojaCard}
+                onPress={() => router.push(`/pooja/${p.key}` as any)}
+              >
                 <Image source={p.image} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
                 <LinearGradient
                   colors={['rgba(0,0,0,0.05)', 'rgba(0,0,0,0.85)']}
@@ -222,7 +247,7 @@ export default function Remedies() {
               <Pressable testID="top-selling-view-all"><Text style={styles.seeAll}>View All</Text></Pressable>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.circleRow}>
-              {TOP_SELLING.map((it) => (
+              {topSelling.map((it: any) => (
                 <Pressable key={it.key} testID={`top-${it.key}`} style={styles.circleCard}>
                   <Image source={it.image} style={styles.circleImg} contentFit="cover" />
                   <Text style={styles.circleLabel} numberOfLines={2}>{it.label}</Text>
@@ -238,7 +263,7 @@ export default function Remedies() {
               <Pressable testID="new-view-all"><Text style={styles.seeAll}>View All</Text></Pressable>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.circleRow}>
-              {NEWLY_LAUNCHED.map((it) => (
+              {newlyLaunched.map((it: any) => (
                 <Pressable key={it.key} testID={`new-${it.key}`} style={styles.circleCard}>
                   <Image source={it.image} style={styles.circleImg} contentFit="cover" />
                   <Text style={styles.circleLabel} numberOfLines={2}>{it.label}</Text>
@@ -250,14 +275,19 @@ export default function Remedies() {
           {/* Doshas & Remedies */}
           <Text style={[styles.sectionTitle, { marginTop: t.spacing.xxl, paddingHorizontal: t.spacing.xl, marginBottom: t.spacing.md }]}>Dosh & Remedies</Text>
           <View style={{ paddingHorizontal: t.spacing.xl, gap: t.spacing.sm }}>
-            {DOSHAS.map((d) => (
-              <Pressable key={d.key} testID={`dosh-${d.key}`} style={styles.doshCard}>
+            {doshas.map((d: any) => (
+              <Pressable
+                key={d.key}
+                testID={`dosh-${d.key}`}
+                style={styles.doshCard}
+                onPress={() => router.push(`/dosh/${d.key}` as any)}
+              >
                 <View style={styles.doshIcon}>
                   <Ionicons name="alert-circle" size={20} color={t.color.brand} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.doshTitle}>{d.label}</Text>
-                  <Text style={styles.doshRemedy} numberOfLines={2}>{d.remedy}</Text>
+                  <Text style={styles.doshRemedy} numberOfLines={2}>{d.summary ?? d.remedy}</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={16} color={t.color.onSurfaceTertiary} />
               </Pressable>

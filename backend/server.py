@@ -98,6 +98,13 @@ class ReviewCreate(BaseModel):
     comment: str
     chat_id: Optional[str] = None
 
+class OrderCreate(BaseModel):
+    item_type: str  # 'pooja' | 'offer'
+    item_key: str
+    label: str
+    price_inr: int
+    notes: Optional[str] = None
+
 # ---------- Seed Data ----------
 SEED_ASTROLOGERS = [
     {
@@ -979,6 +986,146 @@ async def create_announcement(payload: AdminMessageCreate, admin: dict = Depends
 async def delete_announcement(ann_id: str, admin: dict = Depends(require_admin)):
     await db.admin_messages.delete_one({"announcement_id": ann_id})
     return {"ok": True}
+
+
+# ---------- Remedies (content) ----------
+REMEDIES_DATA = {
+    "offers": [
+        {"id": "rudraksha", "tag": "FEATURED", "title": "Find your Perfect Rudraksha in a 1-on-1 session", "subtitle": "with our certified Rudraksha Expert", "price_inr": 199, "cta": "Book your Rudraksha Consultation now", "image": "https://images.unsplash.com/photo-1544006659-f0b21884ce1d?w=800&q=80"},
+        {"id": "gemstone",  "tag": "NEW",      "title": "Personalised Gemstone Report", "subtitle": "Discover the stones aligned with your birth chart", "price_inr": 499, "cta": "Get your Gemstone report", "image": "https://images.unsplash.com/photo-1518635017498-87f514b751ba?w=800&q=80"},
+        {"id": "yagya",     "tag": "LIVE YAGYA", "title": "Group Homa on Purnima", "subtitle": "Priests offer your sankalpa in a live yagya", "price_inr": 351, "cta": "Reserve your seat", "image": "https://images.unsplash.com/photo-1547036967-23d11aacaee0?w=800&q=80"},
+    ],
+    "store": [
+        {"key": "bracelets", "label": "Bracelets",        "image": "https://images.unsplash.com/photo-1544006659-f0b21884ce1d?w=300&q=80"},
+        {"key": "rudraksha", "label": "Rudraksha",        "image": "https://images.unsplash.com/photo-1518635017498-87f514b751ba?w=300&q=80"},
+        {"key": "gemstones", "label": "All Gemstones",    "image": "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=300&q=80"},
+        {"key": "consult",   "label": "Gemstone Consult", "image": "https://images.unsplash.com/photo-1523875194681-bedd468c58bf?w=300&q=80"},
+    ],
+    "poojas": [
+        {"key": "pooja",   "label": "Pooja",              "tag": "TRENDING",         "price_inr": 1100, "image": "https://images.unsplash.com/photo-1547036967-23d11aacaee0?w=600&q=80", "duration": "60-90 min", "description": "A curated Vedic pooja tailored to your intention. Our priests perform sankalpa in your name and share the prasad video with you within 24 hours."},
+        {"key": "spells",  "label": "Special Spells",     "tag": "STARTS AT ₹1100",  "price_inr": 1100, "image": "https://images.unsplash.com/photo-1502134249126-9f3755a50d78?w=600&q=80", "duration": "3-7 days", "description": "Powerful energy-shifting spells for love, protection, and abundance. Guided by seasoned tantriks with a clear ethical code."},
+        {"key": "healing", "label": "Special Healings",   "tag": "STARTS AT ₹1100",  "price_inr": 1100, "image": "https://images.unsplash.com/photo-1518314916381-77a37c2a49ae?w=600&q=80", "duration": "45 min",   "description": "Distance chakra & aura healing performed live over video. Includes a written summary and next-step routine."},
+        {"key": "palm",    "label": "Palmistry",          "tag": "STARTS AT ₹800",   "price_inr": 800,  "image": "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&q=80", "duration": "40 min",   "description": "Deep-dive palm reading: life line, heart line, career mounts and timing markers. Includes a PDF report."},
+        {"key": "akashic", "label": "Akashic Records",    "tag": "STARTS AT ₹499",   "price_inr": 499,  "image": "https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=600&q=80", "duration": "30 min",   "description": "Access the soul-level archive to understand recurring life patterns, past-life ties, and current lessons."},
+        {"key": "face",    "label": "Face Reading",       "tag": "STARTS AT ₹499",   "price_inr": 499,  "image": "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=600&q=80", "duration": "30 min",   "description": "Mien Shiang face reading revealing personality, timing periods, and health tendencies."},
+        {"key": "kundli",  "label": "Kundli Matching",    "tag": "STARTS AT ₹499",   "price_inr": 499,  "image": "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=600&q=80", "duration": "45 min",   "description": "Ashtakoota matching plus modern compatibility assessment. Includes Dosha check and remedies."},
+        {"key": "btr",     "label": "Birth Time Rectification", "tag": "STARTS AT ₹499", "price_inr": 499, "image": "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=600&q=80", "duration": "60 min", "description": "Pin down your exact birth time using life events. Essential for accurate dasha predictions."},
+        {"key": "past",    "label": "Past Life Regression", "tag": "STARTS AT ₹1100","price_inr": 1100, "image": "https://images.unsplash.com/photo-1479030160180-b1860951d696?w=600&q=80", "duration": "90 min",  "description": "Guided regression to explore past-life imprints influencing present relationships and karma."},
+        {"key": "name",    "label": "Name Correction",    "tag": "STARTS AT ₹499",   "price_inr": 499,  "image": "https://images.unsplash.com/photo-1508921912186-1d1a45ebb3c1?w=600&q=80", "duration": "20 min",   "description": "Numerology + phonetic tuning to align your name with your birth chart's core vibration."},
+    ],
+    "top_selling": [
+        {"key": "relationship", "label": "Relationship Healing",     "image": "https://images.unsplash.com/photo-1518623489648-a173ef7824f3?w=200&q=80"},
+        {"key": "evil",         "label": "Evil Eye (Nazar Lagna)",   "image": "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=200&q=80"},
+        {"key": "love",         "label": "Attract Your Love Spell",  "image": "https://images.unsplash.com/photo-1518623489648-a173ef7824f3?w=201&q=80"},
+        {"key": "career",       "label": "Career Boost Pooja",       "image": "https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=200&q=80"},
+        {"key": "angel",        "label": "Angel Healing (Seven)",    "image": "https://images.unsplash.com/photo-1502134249126-9f3755a50d78?w=200&q=80"},
+        {"key": "negativity",   "label": "Negativity Removal",       "image": "https://images.unsplash.com/photo-1518314916381-77a37c2a49ae?w=200&q=80"},
+        {"key": "palm26",       "label": "Palmistry - 2026",         "image": "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=201&q=80"},
+    ],
+    "newly_launched": [
+        {"key": "grahan", "label": "Grahan Dosh Shanti Pooja",  "image": "https://images.unsplash.com/photo-1547036967-23d11aacaee0?w=200&q=80"},
+        {"key": "guru",   "label": "Guru Chandal Dosh Nivaran", "image": "https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=201&q=80"},
+        {"key": "loan",   "label": "Loan (Karz) Mukti Pooja",   "image": "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=200&q=80"},
+        {"key": "pitra",  "label": "Pitra Dosh Shanti Pooja",   "image": "https://images.unsplash.com/photo-1547036967-23d11aacaee0?w=201&q=80"},
+        {"key": "vivah",  "label": "Vivah Badha Nivaran Pooja", "image": "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=201&q=80"},
+        {"key": "saraswati", "label": "Mata Saraswati Pooja for Career", "image": "https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=202&q=80"},
+    ],
+    "doshas": [
+        {"key": "manglik",  "label": "Manglik Dosh",     "summary": "Mars in the 1st, 4th, 7th, 8th or 12th house intensifies relationship karma.",
+         "mantras": ["Om Angarakaya Namah — 108x daily", "Hanuman Chalisa — 1x every Tuesday"],
+         "rituals": ["Kumbh Vivah performed before marriage", "Feed sugar-jaggery-red-flowers to a cow on Tuesdays", "Donate red lentils to a temple"],
+         "who": "Vedic astrologers with Kuja Dosha expertise",
+         "consult_specialty": "Vedic",
+         "image": "https://images.unsplash.com/photo-1533928298208-27ff66555d8d?w=800&q=80"},
+        {"key": "kaalsarp", "label": "Kaal Sarp Dosh",   "summary": "All seven planets between Rahu and Ketu, creating trapped karmic energy.",
+         "mantras": ["Om Namah Shivaya — 108x at sunrise", "Mahamrityunjaya Mantra — 11 rounds daily"],
+         "rituals": ["Nag Panchami Pooja at Trimbakeshwar or Kalahasti", "Silver naga-nagini offering", "Rudra Abhishek monthly"],
+         "who": "Vedic priest or Rudra-abhishek specialist",
+         "consult_specialty": "Vedic",
+         "image": "https://images.unsplash.com/photo-1470240731273-7821a6eeb6bd?w=800&q=80"},
+        {"key": "shani",    "label": "Shani Sade Sati",  "summary": "Saturn's 7.5-year transit over the moon — a period of intense growth.",
+         "mantras": ["Om Sham Shanicharaya Namah — 108x on Saturdays", "Hanuman Chalisa — daily"],
+         "rituals": ["Lighting a mustard-oil lamp under a peepal tree on Saturdays", "Donating black sesame, iron, and blue cloth"],
+         "who": "KP or Vedic astrologer",
+         "consult_specialty": "KP System",
+         "image": "https://images.unsplash.com/photo-1516467508483-a7212febe31a?w=800&q=80"},
+        {"key": "pitra",    "label": "Pitra Dosh",       "summary": "Ancestral karma seeking resolution through your life circumstances.",
+         "mantras": ["Gayatri Mantra — 108x facing east", "Om Pitru Devaya Namah — 21x on Amavasya"],
+         "rituals": ["Tarpan on Amavasya", "Feed crows on the anniversary day", "Distribute food to elders at a temple"],
+         "who": "Vedic priest for tarpan; astrologer for chart review",
+         "consult_specialty": "Vedic",
+         "image": "https://images.unsplash.com/photo-1547036967-23d11aacaee0?w=800&q=80"},
+        {"key": "guru",     "label": "Guru Chandal Dosh","summary": "Jupiter with Rahu confuses wisdom, ethics, and gurus.",
+         "mantras": ["Om Gram Greem Graum Sah Gurave Namah — 108x on Thursdays", "Vishnu Sahasranama — weekly"],
+         "rituals": ["Feed Brahmins / teachers on Thursdays", "Wear a yellow sapphire (with expert consult)", "Donate yellow lentils, turmeric, and yellow cloth"],
+         "who": "Vedic astrologer with graha-yoga expertise",
+         "consult_specialty": "Vedic",
+         "image": "https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=800&q=80"},
+        {"key": "nadi",     "label": "Nadi Dosh",        "summary": "Same 'nadi' in horoscope matching, hinting at health incompatibility.",
+         "mantras": ["Mahamrityunjaya Mantra — 11 malas", "Om Namah Shivaya — 108x nightly"],
+         "rituals": ["Mahamrityunjaya Homa performed together", "Donate to a hospital or medical charity", "Feed 8 Brahmins during Nadi Nivaran"],
+         "who": "Priest for homa; astrologer for chart harmonisation",
+         "consult_specialty": "Vedic",
+         "image": "https://images.unsplash.com/photo-1502134249126-9f3755a50d78?w=800&q=80"},
+    ],
+}
+
+
+@api_router.get("/remedies")
+async def remedies():
+    return REMEDIES_DATA
+
+
+@api_router.get("/remedies/pooja/{key}")
+async def get_pooja(key: str):
+    for p in REMEDIES_DATA["poojas"]:
+        if p["key"] == key:
+            return p
+    raise HTTPException(status_code=404, detail="Pooja not found")
+
+
+@api_router.get("/remedies/offer/{key}")
+async def get_offer(key: str):
+    for o in REMEDIES_DATA["offers"]:
+        if o["id"] == key:
+            return o
+    raise HTTPException(status_code=404, detail="Offer not found")
+
+
+@api_router.get("/remedies/dosh/{key}")
+async def get_dosh(key: str):
+    for d in REMEDIES_DATA["doshas"]:
+        if d["key"] == key:
+            return d
+    raise HTTPException(status_code=404, detail="Dosha not found")
+
+
+# ---------- Orders ----------
+@api_router.post("/orders")
+async def create_order(payload: OrderCreate, user: dict = Depends(require_user)):
+    order = {
+        "order_id": f"ord_{uuid.uuid4().hex[:12]}",
+        "user_id": user["user_id"],
+        "item_type": payload.item_type,
+        "item_key": payload.item_key,
+        "label": payload.label,
+        "price_inr": payload.price_inr,
+        "notes": payload.notes or "",
+        "status": "confirmed",
+        "created_at": utcnow(),
+    }
+    await db.orders.insert_one(dict(order))
+    order["created_at"] = order["created_at"].isoformat()
+    return order
+
+
+@api_router.get("/orders")
+async def list_orders(user: dict = Depends(require_user)):
+    items = await db.orders.find({"user_id": user["user_id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    for it in items:
+        if isinstance(it.get("created_at"), datetime):
+            it["created_at"] = it["created_at"].isoformat()
+    return items
 
 
 # ---------- Root ----------
