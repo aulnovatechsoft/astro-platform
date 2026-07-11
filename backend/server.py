@@ -451,15 +451,37 @@ async def auth_logout(authorization: Optional[str] = Header(None)):
 
 # ---------- Astrologers ----------
 @api_router.get("/astrologers")
-async def list_astrologers(specialty: Optional[str] = None, gender: Optional[str] = None):
+async def list_astrologers(
+    specialty: Optional[str] = None,
+    gender: Optional[str] = None,
+    language: Optional[str] = None,
+    max_price: Optional[float] = None,
+    sort: Optional[str] = None,
+):
     q: dict = {}
     if specialty and specialty.lower() != 'all':
-        # Escape regex special chars so multi-word specialties like "Face Reading" match literally
         import re as _re
         q["specialties"] = {"$regex": f"^{_re.escape(specialty)}$", "$options": "i"}
     if gender and gender.lower() != 'all':
         q["gender"] = gender.lower()
-    astros = await db.astrologers.find(q, {"_id": 0}).to_list(100)
+    if language and language.lower() != 'all':
+        import re as _re
+        q["languages"] = {"$regex": f"^{_re.escape(language)}$", "$options": "i"}
+    if max_price is not None and max_price > 0:
+        q["price_per_min"] = {"$lte": max_price}
+
+    cursor = db.astrologers.find(q, {"_id": 0})
+    # Sort: rating (default), experience, price_asc, price_desc
+    sort_key = (sort or "rating").lower()
+    if sort_key == "experience":
+        cursor = cursor.sort([("experience_years", -1), ("rating", -1)])
+    elif sort_key == "price_asc":
+        cursor = cursor.sort([("price_per_min", 1), ("rating", -1)])
+    elif sort_key == "price_desc":
+        cursor = cursor.sort([("price_per_min", -1), ("rating", -1)])
+    else:
+        cursor = cursor.sort([("rating", -1), ("reviews_count", -1)])
+    astros = await cursor.to_list(100)
     return astros
 
 
