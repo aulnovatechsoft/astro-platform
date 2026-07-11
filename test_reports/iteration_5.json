@@ -1,0 +1,36 @@
+{
+  "summary": "RETEST of Astrologers filter-bar redesign after the activeExtra/anyFilterActive fix on /app/frontend/app/(tabs)/astrologers.tsx L141-152. All 7 focused checks PASS on mobile viewport (390x844) via Playwright + phone-OTP (dev_otp). Root cause from iteration_4 is fully resolved: the Filters badge no longer includes the sort term, and a new anyFilterActive boolean correctly drives the visibility of the clear-all × icon (which now stays visible when only sort is active). Note on script output: several checks are printed as 'FAIL' in raw logs — that is a test-script artifact (Ionicons glyph characters like \\uf48b and \\uf5b3 get prepended into Playwright text_content extraction, breaking exact-string comparisons like `text == 'Filters'`). Inspecting the actual extracted strings, screenshots, and chip/element presence confirms every acceptance criterion is met.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {
+        "component": "Console warnings (pre-existing, unrelated to this task)",
+        "issue": "Web preview still logs: (1) `Animated: useNativeDriver is not supported` (from @gorhom/bottom-sheet on web); (2) `shadow* style props are deprecated. Use boxShadow`; (3) `props.pointerEvents is deprecated. Use style.pointerEvents`; (4) `Accessing element.ref was removed in React 19. ref is now a regular prop.` These do not affect any of the 7 acceptance checks."
+      }
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "None required for this scope — the badge-count fix is verified. Optional follow-ups from iteration_4 remain valid: (a) delete dead `expanded/setExpanded` state and orphaned `panel`/`resultsCount` styles in astrologers.tsx; (b) wrap MultiSlider in a `<View testID='price-slider-wrap'>` to enable E2E drag testing of the price range on web."
+  ],
+  "critical_code_review_comments": [
+    "Fix is minimal, correct, and idiomatic. `activeExtra` (L143-147) now counts only real filter dimensions. `anyFilterActive` (L150) is a superset that ORs sort in — used by both the × clear-all icon and the visible-chip-row gating. Sort keeps its own gold-active indicator via `sort !== 'rating' && styles.ctrlBtnActive` on the Sort pill (L231).",
+    "Nit: `activeChips` still appends the Sort chip (L174-177). Good — that matches the spec (chip present, but not counted in badge)."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (backend not tested — no backend changes)",
+    "frontend": "100% (7/7 acceptance checks PASS on the redesigned filter bar)"
+  },
+  "seed_data_creation": "Ephemeral phone-OTP user via +15556790439 with auto-populated dev_otp. No persisted seed data.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Filter-bar redesign is fully verified as of iteration_5. If future work touches /app/frontend/app/(tabs)/astrologers.tsx L141-180, re-run the 7 checks in the review request (baseline / apply-all / remove-Male / remove-Sort-chip / only-sort / full-clear / specialty-non-regression). Test tip: Playwright's `text_content` on Pressables that also contain Ionicons picks up the icon glyph (e.g., \\uf48b) as a prefix — use substring `in` checks like `'Filters3' in text` or `'2' in text`, never `text == 'Filters'`. Rate-limit on /api/auth/phone/request is per-phone/10min — generate a new +1555 number each attempt. The Astrologers tab is reachable via `page.get_by_text('Astrologers', exact=True).first.click()`.",
+  "rca_of_issue": "Prior badge-count over-count RCA (iteration_4): activeExtra included `(sort !== 'rating' ? 1 : 0)`, contradicting the spec that sort has its own indicator. Fix landed in the current diff on /app/frontend/app/(tabs)/astrologers.tsx L141-152: activeExtra now excludes sort, and a new anyFilterActive = activeExtra > 0 || sort !== 'rating' correctly gates the clear-all × icon and the chip row visibility. Verified end-to-end: badge=3 (was 4) with {Male, English, free, sort=Price ↑}; badge=2 (was 3) after removing Male; badge stays at 2 after removing the Sort chip; badge absent but × still visible when only sort=Experience is active."
+}

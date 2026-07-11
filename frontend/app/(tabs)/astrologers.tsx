@@ -138,12 +138,16 @@ function AstrologersInner() {
       .finally(() => setLoading(false));
   }, [hydrated, filter, gender, language, price, freeOnly, sort]);
 
+  // "Filters" badge counts only true filter dimensions.
+  // Sort has its own independent gold indicator on the Sort pill, so it's excluded here.
   const activeExtra =
     (gender !== 'all' ? 1 : 0) +
     (language !== 'All' ? 1 : 0) +
     (price[0] > PRICE_MIN || price[1] < PRICE_MAX ? 1 : 0) +
-    (freeOnly ? 1 : 0) +
-    (sort !== 'rating' ? 1 : 0);
+    (freeOnly ? 1 : 0);
+
+  // A superset used by the clear-all "×" and the active-chip row (includes sort).
+  const anyFilterActive = activeExtra > 0 || sort !== 'rating';
 
   const resetAll = useCallback(() => {
     lightHaptic();
@@ -237,7 +241,7 @@ function AstrologersInner() {
             {astros.length} result{astros.length === 1 ? '' : 's'}
           </Text>
 
-          {activeExtra > 0 && (
+          {anyFilterActive && (
             <Pressable testID="clear-filters" onPress={resetAll} hitSlop={8} style={styles.clearIconBtn} accessibilityLabel="Clear all filters">
               <Ionicons name="close-circle" size={20} color={t.color.brand} />
             </Pressable>
