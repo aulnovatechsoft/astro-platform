@@ -57,7 +57,7 @@ export default function Astrologers() {
           <FlatList
             data={astros}
             keyExtractor={(i) => i.astrologer_id}
-            contentContainerStyle={{ padding: t.spacing.xl, paddingBottom: 120, gap: t.spacing.md }}
+            contentContainerStyle={{ padding: t.spacing.xl, paddingBottom: 140, gap: t.spacing.md }}
             ListEmptyComponent={<Text style={styles.empty}>No astrologers match this filter.</Text>}
             renderItem={({ item }) => (
               <Pressable

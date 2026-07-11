@@ -30,7 +30,7 @@ export default function Chats() {
         <FlatList
           data={chats}
           keyExtractor={(i) => i.chat_id}
-          contentContainerStyle={{ padding: t.spacing.xl, paddingBottom: 120, gap: t.spacing.md }}
+          contentContainerStyle={{ padding: t.spacing.xl, paddingBottom: 140, gap: t.spacing.md }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={t.color.brand} />}
           ListEmptyComponent={
             <View style={styles.emptyWrap}>

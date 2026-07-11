@@ -44,7 +44,7 @@ export default function Wallet() {
         </View>
 
         <ScrollView
-          contentContainerStyle={{ paddingBottom: 120 }}
+          contentContainerStyle={{ paddingBottom: 140 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={t.color.brand} />}
         >
           <View style={styles.balanceCard}>

@@ -66,7 +66,7 @@ export default function Admin() {
           <View style={{ width: 40 }} />
         </View>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-          <ScrollView contentContainerStyle={{ padding: t.spacing.xl, paddingBottom: 120 }} keyboardShouldPersistTaps="handled">
+          <ScrollView contentContainerStyle={{ padding: t.spacing.xl, paddingBottom: 140 }} keyboardShouldPersistTaps="handled">
             <View style={styles.formCard}>
               <Text style={styles.formTitle}>Post an announcement</Text>
               <TextInput testID="admin-title" style={styles.input} value={title} onChangeText={setTitle} placeholder="Title" placeholderTextColor={t.color.muted} />

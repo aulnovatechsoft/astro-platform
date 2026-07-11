@@ -78,6 +78,37 @@ def test_zodiacs():
     assert r.status_code == 200
     z = r.json()
     assert len(z) == 12
+    # Regression (Bug #1): every zodiac must expose an image URL
+    for entry in z:
+        assert 'image' in entry, f"zodiac {entry.get('sign')} missing 'image'"
+        assert isinstance(entry['image'], str) and entry['image'].startswith('http'), \
+            f"zodiac {entry.get('sign')} has invalid image URL: {entry.get('image')}"
+
+
+def test_home_dashboard_leo_concerns_have_images():
+    """Regression (Bug #2): home-dashboard concerns[] must include image URLs."""
+    r = requests.get(f"{BASE_URL}/api/home-dashboard", params={"sign": "Leo"}, timeout=10)
+    assert r.status_code == 200
+    d = r.json()
+    assert d['horoscope']['sign'] == 'Leo'
+    concerns = d.get('concerns') or []
+    assert len(concerns) >= 6, f"expected concerns list, got {len(concerns)}"
+    keys = {c['key'] for c in concerns}
+    for expected in ['love', 'career', 'marriage', 'money', 'health', 'family']:
+        assert expected in keys, f"missing concern key {expected}"
+    for c in concerns:
+        assert 'image' in c, f"concern {c.get('key')} missing 'image'"
+        assert isinstance(c['image'], str) and c['image'].startswith('http'), \
+            f"concern {c.get('key')} has invalid image URL: {c.get('image')}"
+
+
+def test_home_dashboard_panchang_shape():
+    """Regression (Bug #3): panchang must have all 6 fields for the compact ribbon."""
+    r = requests.get(f"{BASE_URL}/api/home-dashboard", params={"sign": "Aries"}, timeout=10)
+    assert r.status_code == 200
+    p = r.json().get('panchang') or {}
+    for k in ['tithi', 'nakshatra', 'sunrise', 'sunset', 'rahu_kaal', 'abhijit']:
+        assert k in p and p[k], f"panchang missing/empty {k}"
 
 
 def test_horoscope_aries():

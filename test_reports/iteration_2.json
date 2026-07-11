@@ -1,0 +1,29 @@
+{
+  "summary": "Bug-fix iteration for 4 Home tab UI bugs. Backend regression: 23/23 pytest passed including 3 new regression cases (test_zodiacs image field, test_home_dashboard_leo_concerns_have_images, test_home_dashboard_panchang_shape). Frontend UI (390x844 mobile viewport, phone login +15550002222 / OTP 123456): (Bug#1) All 12 zodiac cards render as circular photo cards with data-testid home-zodiac-<Sign>. Leo card has 1 <img> with Unsplash src; tapping Leo updated hero card to 'TODAY · Jul 23 - Aug 22 / Leo'. (Bug#2) All 8 concern cards (love, career, marriage, money, health, family, education, spiritual) render as image cards (imgs:1, svgs:0 — no icon), 104x104 in 3-col grid, with dark-gradient label overlay confirmed via screenshot. (Bug#3) Panchang is a compact horizontal ribbon: header shows date + 'Shubh' pill; 6 pill cells (Tithi/Nakshatra/Sunrise/Sunset/Abhijit/Rahu Kaal) visible in horizontal ScrollView. (Bug#4) Tab bar respects safe-area insets — _layout.tsx uses useSafeAreaInsets() with paddingBottom Math.max(insets.bottom,16) and height 60+bottomPad; in 390x844 viewport tab labels bottom=819 (25px clearance), all 5 tabs (Home/Astrologers/Chats/Kundli/Profile) visible and clickable; navigation Home→Chats→Home works. No deprecated Expo packages (no expo-av/expo-barcode-scanner/expo-background-fetch). No red screen errors.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_aura_backend.py",
+    "/app/backend/tests/conftest.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Zodiac image URLs are duplicated between frontend const ZODIAC (index.tsx lines 14-27) and backend ZODIAC[] (server.py lines 190-201). Frontend still uses its own local const rather than reading z.image from GET /api/zodiacs response — the backend image field is present but unused by the Home screen. Minor DRY concern; consider consuming the API field for a single source of truth.",
+    "server.py is 880 lines — approaching the 700-line limit noted in prior review; consider splitting into routers when adding more features."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_aura_backend.py (added 3 regression tests: zodiac image URL, home-dashboard concerns image URL, panchang shape)"
+  ],
+  "success_rate": {"backend": "100% (23/23)", "frontend": "100% (4/4 bugs verified)"},
+  "seed_data_creation": "Ephemeral phone user +15550002222 / OTP 123456 for UI login (mock OTP, no cleanup needed). Backend pytest uses TEST_-prefixed random phones.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Home tab testIDs: 'home-zodiac-<Sign>' (12 cards, Sign = Aries..Pisces), 'concern-<key>' (8 cards: love/career/marriage/money/health/family/education/spiritual), 'home-hero-card', 'card-of-the-day'. Login flow unchanged from iteration_1. Note: Panchang cell KEY labels are uppercased via CSS text-transform, so page.get_by_text('Tithi', exact=True) will FAIL — use case-insensitive matching or the pill's parent testID if adding future tests. Zodiac image URLs are hard-coded on the FRONTEND (index.tsx lines 14-27); the backend GET /api/zodiacs also returns image URLs but frontend does not consume them.",
+  "rca_of_issue": "N/A — all 4 bug fixes verified working. No new issues introduced."
+}

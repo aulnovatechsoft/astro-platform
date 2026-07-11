@@ -2,10 +2,15 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { Platform, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/src/ThemeContext';
 
 export default function TabsLayout() {
   const t = useTheme();
+  const insets = useSafeAreaInsets();
+  // Guarantee enough clearance from the OS home indicator / gesture bar.
+  // Minimum 16px, plus whatever the OS declares as safe.
+  const bottomPad = Math.max(insets.bottom, 16);
   const tabBg = t.isDark ? 'rgba(15,14,13,0.92)' : 'rgba(251,249,244,0.94)';
   return (
     <Tabs
@@ -18,9 +23,9 @@ export default function TabsLayout() {
           backgroundColor: Platform.OS === 'ios' ? 'transparent' : tabBg,
           borderTopColor: t.color.border,
           borderTopWidth: StyleSheet.hairlineWidth,
-          height: 78,
-          paddingTop: 8,
-          paddingBottom: 20,
+          height: 60 + bottomPad,
+          paddingTop: 10,
+          paddingBottom: bottomPad,
         },
         tabBarBackground: () =>
           Platform.OS === 'ios' ? (
@@ -29,6 +34,7 @@ export default function TabsLayout() {
             <View style={[StyleSheet.absoluteFill, { backgroundColor: tabBg }]} />
           ),
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarItemStyle: { paddingVertical: 4 },
       }}
     >
       <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: ({ color, size }) => <Ionicons name="home" color={color} size={size} /> }} />

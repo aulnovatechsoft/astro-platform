@@ -187,18 +187,18 @@ SEED_ASTROLOGERS = [
 ]
 
 ZODIAC = [
-    {"sign": "Aries", "dates": "Mar 21 - Apr 19", "element": "Fire"},
-    {"sign": "Taurus", "dates": "Apr 20 - May 20", "element": "Earth"},
-    {"sign": "Gemini", "dates": "May 21 - Jun 20", "element": "Air"},
-    {"sign": "Cancer", "dates": "Jun 21 - Jul 22", "element": "Water"},
-    {"sign": "Leo", "dates": "Jul 23 - Aug 22", "element": "Fire"},
-    {"sign": "Virgo", "dates": "Aug 23 - Sep 22", "element": "Earth"},
-    {"sign": "Libra", "dates": "Sep 23 - Oct 22", "element": "Air"},
-    {"sign": "Scorpio", "dates": "Oct 23 - Nov 21", "element": "Water"},
-    {"sign": "Sagittarius", "dates": "Nov 22 - Dec 21", "element": "Fire"},
-    {"sign": "Capricorn", "dates": "Dec 22 - Jan 19", "element": "Earth"},
-    {"sign": "Aquarius", "dates": "Jan 20 - Feb 18", "element": "Air"},
-    {"sign": "Pisces", "dates": "Feb 19 - Mar 20", "element": "Water"},
+    {"sign": "Aries",       "dates": "Mar 21 - Apr 19", "element": "Fire",  "image": "https://images.unsplash.com/photo-1533928298208-27ff66555d8d?w=300&h=300&fit=crop&q=80"},
+    {"sign": "Taurus",      "dates": "Apr 20 - May 20", "element": "Earth", "image": "https://images.unsplash.com/photo-1516467508483-a7212febe31a?w=300&h=300&fit=crop&q=80"},
+    {"sign": "Gemini",      "dates": "May 21 - Jun 20", "element": "Air",   "image": "https://images.unsplash.com/photo-1509515837298-2c67a3933321?w=300&h=300&fit=crop&q=80"},
+    {"sign": "Cancer",      "dates": "Jun 21 - Jul 22", "element": "Water", "image": "https://images.unsplash.com/photo-1527842891421-42eec6e703ea?w=300&h=300&fit=crop&q=80"},
+    {"sign": "Leo",         "dates": "Jul 23 - Aug 22", "element": "Fire",  "image": "https://images.unsplash.com/photo-1546182990-dffeafbe841d?w=300&h=300&fit=crop&q=80"},
+    {"sign": "Virgo",       "dates": "Aug 23 - Sep 22", "element": "Earth", "image": "https://images.unsplash.com/photo-1476231682828-37e571bc172f?w=300&h=300&fit=crop&q=80"},
+    {"sign": "Libra",       "dates": "Sep 23 - Oct 22", "element": "Air",   "image": "https://images.unsplash.com/photo-1522441815192-d9f04eb0615c?w=300&h=300&fit=crop&q=80"},
+    {"sign": "Scorpio",     "dates": "Oct 23 - Nov 21", "element": "Water", "image": "https://images.unsplash.com/photo-1470240731273-7821a6eeb6bd?w=300&h=300&fit=crop&q=80"},
+    {"sign": "Sagittarius", "dates": "Nov 22 - Dec 21", "element": "Fire",  "image": "https://images.unsplash.com/photo-1470813740244-df37b8c1edcb?w=300&h=300&fit=crop&q=80"},
+    {"sign": "Capricorn",   "dates": "Dec 22 - Jan 19", "element": "Earth", "image": "https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=300&h=300&fit=crop&q=80"},
+    {"sign": "Aquarius",    "dates": "Jan 20 - Feb 18", "element": "Air",   "image": "https://images.unsplash.com/photo-1524055988636-436cfa46e59e?w=300&h=300&fit=crop&q=80"},
+    {"sign": "Pisces",      "dates": "Feb 19 - Mar 20", "element": "Water", "image": "https://images.unsplash.com/photo-1524704654690-b56c05c78a00?w=300&h=300&fit=crop&q=80"},
 ]
 
 DAILY_HOROSCOPE = {
@@ -232,14 +232,14 @@ TAROT_DECK = [
 ]
 
 CONCERNS = [
-    {"key": "love", "label": "Love", "icon": "heart", "specialty": "Tarot"},
-    {"key": "career", "label": "Career", "icon": "briefcase", "specialty": "Vedic"},
-    {"key": "marriage", "label": "Marriage", "icon": "diamond", "specialty": "Vedic"},
-    {"key": "money", "label": "Money", "icon": "cash", "specialty": "Numerology"},
-    {"key": "health", "label": "Health", "icon": "medkit", "specialty": "Palmistry"},
-    {"key": "family", "label": "Family", "icon": "people", "specialty": "Vedic"},
-    {"key": "education", "label": "Education", "icon": "school", "specialty": "KP System"},
-    {"key": "spiritual", "label": "Spiritual", "icon": "sparkles", "specialty": "Tarot"},
+    {"key": "love",      "label": "Love",      "icon": "heart",     "specialty": "Tarot",       "image": "https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=400&h=300&fit=crop&q=80"},
+    {"key": "career",    "label": "Career",    "icon": "briefcase", "specialty": "Vedic",       "image": "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=400&h=300&fit=crop&q=80"},
+    {"key": "marriage",  "label": "Marriage",  "icon": "diamond",   "specialty": "Vedic",       "image": "https://images.unsplash.com/photo-1519741497674-611481863552?w=400&h=300&fit=crop&q=80"},
+    {"key": "money",     "label": "Money",     "icon": "cash",      "specialty": "Numerology",  "image": "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400&h=300&fit=crop&q=80"},
+    {"key": "health",    "label": "Health",    "icon": "medkit",    "specialty": "Palmistry",   "image": "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop&q=80"},
+    {"key": "family",    "label": "Family",    "icon": "people",    "specialty": "Vedic",       "image": "https://images.unsplash.com/photo-1511895426328-dc8714191300?w=400&h=300&fit=crop&q=80"},
+    {"key": "education", "label": "Education", "icon": "school",    "specialty": "KP System",   "image": "https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=400&h=300&fit=crop&q=80"},
+    {"key": "spiritual", "label": "Spiritual", "icon": "sparkles",  "specialty": "Tarot",       "image": "https://images.unsplash.com/photo-1502134249126-9f3755a50d78?w=400&h=300&fit=crop&q=80"},
 ]
 
 TESTIMONIALS = [

@@ -12,10 +12,18 @@ import { useTheme } from '@/src/ThemeContext';
 const MOON_BG = 'https://images.unsplash.com/photo-1527842891421-42eec6e703ea?crop=entropy&cs=srgb&fm=jpg&w=1000&q=85';
 
 const ZODIAC = [
-  { sign: 'Aries', glyph: '♈' }, { sign: 'Taurus', glyph: '♉' }, { sign: 'Gemini', glyph: '♊' },
-  { sign: 'Cancer', glyph: '♋' }, { sign: 'Leo', glyph: '♌' }, { sign: 'Virgo', glyph: '♍' },
-  { sign: 'Libra', glyph: '♎' }, { sign: 'Scorpio', glyph: '♏' }, { sign: 'Sagittarius', glyph: '♐' },
-  { sign: 'Capricorn', glyph: '♑' }, { sign: 'Aquarius', glyph: '♒' }, { sign: 'Pisces', glyph: '♓' },
+  { sign: 'Aries',       glyph: '♈', image: 'https://images.unsplash.com/photo-1533928298208-27ff66555d8d?w=200&h=200&fit=crop&q=80' },
+  { sign: 'Taurus',      glyph: '♉', image: 'https://images.unsplash.com/photo-1516467508483-a7212febe31a?w=200&h=200&fit=crop&q=80' },
+  { sign: 'Gemini',      glyph: '♊', image: 'https://images.unsplash.com/photo-1509515837298-2c67a3933321?w=200&h=200&fit=crop&q=80' },
+  { sign: 'Cancer',      glyph: '♋', image: 'https://images.unsplash.com/photo-1527842891421-42eec6e703ea?w=200&h=200&fit=crop&q=80' },
+  { sign: 'Leo',         glyph: '♌', image: 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?w=200&h=200&fit=crop&q=80' },
+  { sign: 'Virgo',       glyph: '♍', image: 'https://images.unsplash.com/photo-1476231682828-37e571bc172f?w=200&h=200&fit=crop&q=80' },
+  { sign: 'Libra',       glyph: '♎', image: 'https://images.unsplash.com/photo-1522441815192-d9f04eb0615c?w=200&h=200&fit=crop&q=80' },
+  { sign: 'Scorpio',     glyph: '♏', image: 'https://images.unsplash.com/photo-1470240731273-7821a6eeb6bd?w=200&h=200&fit=crop&q=80' },
+  { sign: 'Sagittarius', glyph: '♐', image: 'https://images.unsplash.com/photo-1470813740244-df37b8c1edcb?w=200&h=200&fit=crop&q=80' },
+  { sign: 'Capricorn',   glyph: '♑', image: 'https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=200&h=200&fit=crop&q=80' },
+  { sign: 'Aquarius',    glyph: '♒', image: 'https://images.unsplash.com/photo-1524055988636-436cfa46e59e?w=200&h=200&fit=crop&q=80' },
+  { sign: 'Pisces',      glyph: '♓', image: 'https://images.unsplash.com/photo-1524704654690-b56c05c78a00?w=200&h=200&fit=crop&q=80' },
 ];
 
 const QUICK_ACTIONS = [
@@ -78,7 +86,7 @@ export default function Home() {
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 130 }}
+          contentContainerStyle={{ paddingBottom: 150 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={t.color.brand} />}
         >
           {/* HEADER */}
@@ -114,20 +122,30 @@ export default function Home() {
             </View>
           )}
 
-          {/* ZODIAC SELECTOR */}
+          {/* ZODIAC SELECTOR — image-forward cards */}
           <Text style={styles.sectionEyebrow}>YOUR SIGN</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.zodiacRow}>
-            {ZODIAC.map((z) => (
-              <Pressable
-                key={z.sign}
-                testID={`home-zodiac-${z.sign}`}
-                style={[styles.signPill, sign === z.sign && styles.signPillActive]}
-                onPress={() => setSign(z.sign)}
-              >
-                <Text style={[styles.signGlyph, sign === z.sign && { color: t.color.onBrandPrimary }]}>{z.glyph}</Text>
-                <Text style={[styles.signLabel, sign === z.sign && { color: t.color.onBrandPrimary }]}>{z.sign.slice(0, 3)}</Text>
-              </Pressable>
-            ))}
+            {ZODIAC.map((z) => {
+              const active = sign === z.sign;
+              return (
+                <Pressable
+                  key={z.sign}
+                  testID={`home-zodiac-${z.sign}`}
+                  style={styles.signCard}
+                  onPress={() => setSign(z.sign)}
+                >
+                  <View style={[styles.signImgWrap, active && { borderColor: t.color.brand }]}>
+                    <Image source={z.image} style={styles.signImg} contentFit="cover" transition={200} />
+                    <LinearGradient
+                      colors={active ? ['rgba(0,0,0,0)', 'rgba(0,0,0,0.35)'] : ['rgba(0,0,0,0)', 'rgba(0,0,0,0.55)']}
+                      style={StyleSheet.absoluteFill}
+                    />
+                    {active && <View style={styles.signActiveDot} />}
+                  </View>
+                  <Text style={[styles.signCardLabel, active && { color: t.color.brand }]}>{z.sign.slice(0, 3)}</Text>
+                </Pressable>
+              );
+            })}
           </ScrollView>
 
           {/* HERO HOROSCOPE CARD */}
@@ -209,7 +227,7 @@ export default function Home() {
             )}
           />
 
-          {/* CONCERNS */}
+          {/* CONCERNS — image-forward cards */}
           <Text style={[styles.sectionTitle, { paddingHorizontal: t.spacing.xl, marginTop: t.spacing.xxl, marginBottom: t.spacing.md }]}>Ask about</Text>
           <View style={styles.concernsGrid}>
             {(data?.concerns || []).map((c: any) => (
@@ -219,31 +237,38 @@ export default function Home() {
                 style={styles.concernCard}
                 onPress={() => goAstros(c.specialty)}
               >
-                <View style={styles.concernIcon}><Ionicons name={c.icon} size={18} color={t.color.brand} /></View>
-                <Text style={styles.concernLabel}>{c.label}</Text>
+                <View style={styles.concernImgWrap}>
+                  <Image source={c.image} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
+                  <LinearGradient
+                    colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.75)']}
+                    style={StyleSheet.absoluteFill}
+                  />
+                  <Text style={styles.concernLabelOverlay}>{c.label}</Text>
+                </View>
               </Pressable>
             ))}
           </View>
 
-          {/* PANCHANG */}
-          <Text style={[styles.sectionTitle, { paddingHorizontal: t.spacing.xl, marginTop: t.spacing.xxl, marginBottom: t.spacing.md }]}>Today&apos;s Panchang</Text>
-          <View style={styles.panchang}>
-            <View style={styles.panchangHeader}>
-              <View>
-                <Text style={styles.panchangDate}>{new Date().toDateString()}</Text>
-                <Text style={styles.panchangSub}>Auspicious timings</Text>
-              </View>
-              <View style={styles.auspiciousChip}><Text style={styles.auspiciousText}>Shubh</Text></View>
+          {/* PANCHANG — compact horizontal ribbon */}
+          <View style={styles.panchangSectionHeader}>
+            <View>
+              <Text style={styles.sectionTitle}>Today&apos;s Panchang</Text>
+              <Text style={styles.panchangDate}>{new Date().toDateString()}</Text>
             </View>
-            <View style={styles.panchangGrid}>
-              <View style={styles.panchangItem}><Text style={styles.pKey}>Tithi</Text><Text style={styles.pVal}>{data?.panchang?.tithi}</Text></View>
-              <View style={styles.panchangItem}><Text style={styles.pKey}>Nakshatra</Text><Text style={styles.pVal}>{data?.panchang?.nakshatra}</Text></View>
-              <View style={styles.panchangItem}><Text style={styles.pKey}>Sunrise</Text><Text style={styles.pVal}>{data?.panchang?.sunrise}</Text></View>
-              <View style={styles.panchangItem}><Text style={styles.pKey}>Sunset</Text><Text style={styles.pVal}>{data?.panchang?.sunset}</Text></View>
-              <View style={styles.panchangItem}><Text style={styles.pKey}>Abhijit</Text><Text style={[styles.pVal, { color: t.color.success }]}>{data?.panchang?.abhijit}</Text></View>
-              <View style={styles.panchangItem}><Text style={styles.pKey}>Rahu Kaal</Text><Text style={[styles.pVal, { color: t.color.error }]}>{data?.panchang?.rahu_kaal}</Text></View>
-            </View>
+            <View style={styles.auspiciousChip}><Ionicons name="sparkles" size={11} color={t.color.onBrandPrimary} /><Text style={styles.auspiciousText}>Shubh</Text></View>
           </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.panchangRow}
+          >
+            <View style={styles.panchangCell}><Text style={styles.pKey}>Tithi</Text><Text style={styles.pVal}>{data?.panchang?.tithi}</Text></View>
+            <View style={styles.panchangCell}><Text style={styles.pKey}>Nakshatra</Text><Text style={styles.pVal}>{data?.panchang?.nakshatra}</Text></View>
+            <View style={styles.panchangCell}><Text style={styles.pKey}>Sunrise</Text><Text style={styles.pVal}>{data?.panchang?.sunrise}</Text></View>
+            <View style={styles.panchangCell}><Text style={styles.pKey}>Sunset</Text><Text style={styles.pVal}>{data?.panchang?.sunset}</Text></View>
+            <View style={styles.panchangCell}><Text style={styles.pKey}>Abhijit</Text><Text style={[styles.pVal, { color: t.color.success }]}>{data?.panchang?.abhijit}</Text></View>
+            <View style={styles.panchangCell}><Text style={styles.pKey}>Rahu Kaal</Text><Text style={[styles.pVal, { color: t.color.error }]}>{data?.panchang?.rahu_kaal}</Text></View>
+          </ScrollView>
 
           {/* CARD OF THE DAY */}
           <Text style={[styles.sectionTitle, { paddingHorizontal: t.spacing.xl, marginTop: t.spacing.xxl, marginBottom: t.spacing.md }]}>Your Card of the Day</Text>
@@ -377,12 +402,23 @@ function useStyles() {
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: t.spacing.xl, marginTop: t.spacing.xxl, marginBottom: t.spacing.md },
   sectionTitle: { color: t.color.onSurface, fontSize: 20, fontFamily: t.font.display },
   seeAll: { color: t.color.brand, fontSize: 13, fontWeight: '600' },
-  // Zodiac selector
-  zodiacRow: { paddingHorizontal: t.spacing.xl, gap: 8, alignItems: 'center', paddingBottom: t.spacing.md },
-  signPill: { alignItems: 'center', justifyContent: 'center', minWidth: 56, height: 66, borderRadius: t.radius.md, backgroundColor: t.color.surfaceSecondary, borderWidth: 1, borderColor: t.color.border, paddingHorizontal: 10, flexShrink: 0 },
-  signPillActive: { backgroundColor: t.color.brand, borderColor: t.color.brand },
-  signGlyph: { fontSize: 22, color: t.color.brand },
-  signLabel: { color: t.color.onSurfaceSecondary, fontSize: 10, fontWeight: '700', marginTop: 2 },
+  // Zodiac selector — image cards
+  zodiacRow: { paddingHorizontal: t.spacing.xl, gap: 10, alignItems: 'center', paddingBottom: t.spacing.md },
+  signCard: { width: 68, alignItems: 'center', gap: 6, flexShrink: 0 },
+  signCardActive: {},
+  signImgWrap: {
+    width: 60, height: 60, borderRadius: 30, overflow: 'hidden',
+    borderWidth: 2, borderColor: 'transparent',
+    backgroundColor: t.color.surfaceSecondary,
+  },
+  signImg: { width: '100%', height: '100%' },
+  signActiveDot: {
+    position: 'absolute', bottom: -2, right: -2,
+    width: 14, height: 14, borderRadius: 7,
+    backgroundColor: t.color.brand,
+    borderWidth: 2, borderColor: t.color.surface,
+  },
+  signCardLabel: { color: t.color.onSurfaceSecondary, fontSize: 11, fontWeight: '700', letterSpacing: 0.4 },
   // Hero
   hero: { marginHorizontal: t.spacing.xl, height: 260, borderRadius: t.radius.lg, overflow: 'hidden', justifyContent: 'flex-end' },
   heroContent: { padding: t.spacing.xl, gap: 6 },
@@ -419,22 +455,30 @@ function useStyles() {
   rateRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 4 },
   rateText: { color: t.color.onSurface, fontSize: 11, fontWeight: '600' },
   rateDot: { color: t.color.onSurfaceTertiary, marginHorizontal: 2 },
-  // Concerns
+  // Concerns — image-forward
   concernsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: t.spacing.sm, paddingHorizontal: t.spacing.xl },
-  concernCard: { width: '22.5%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: t.color.surfaceSecondary, borderRadius: t.radius.md, borderWidth: 1, borderColor: t.color.border },
-  concernIcon: { width: 34, height: 34, borderRadius: 17, backgroundColor: t.color.brandTertiary, alignItems: 'center', justifyContent: 'center' },
-  concernLabel: { color: t.color.onSurface, fontSize: 11, fontWeight: '600' },
-  // Panchang
-  panchang: { marginHorizontal: t.spacing.xl, padding: t.spacing.lg, borderRadius: t.radius.md, backgroundColor: t.color.surfaceSecondary, borderWidth: 1, borderColor: t.color.border },
-  panchangHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: t.spacing.md },
-  panchangDate: { color: t.color.onSurface, fontWeight: '700' },
-  panchangSub: { color: t.color.onSurfaceTertiary, fontSize: 11, marginTop: 2 },
-  auspiciousChip: { backgroundColor: t.color.brand, paddingHorizontal: 10, paddingVertical: 4, borderRadius: t.radius.pill },
+  concernCard: { width: '30.5%', aspectRatio: 1, borderRadius: t.radius.md, overflow: 'hidden', borderWidth: 1, borderColor: t.color.border },
+  concernImgWrap: { flex: 1, justifyContent: 'flex-end' },
+  concernLabelOverlay: { color: '#fff', fontSize: 13, fontWeight: '700', padding: 10, letterSpacing: 0.3 },
+  // Panchang — compact ribbon
+  panchangSectionHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: t.spacing.xl, marginTop: t.spacing.xxl, marginBottom: t.spacing.md,
+  },
+  panchangDate: { color: t.color.onSurfaceTertiary, fontSize: 11, marginTop: 2 },
+  auspiciousChip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: t.color.brand, paddingHorizontal: 10, paddingVertical: 5, borderRadius: t.radius.pill },
   auspiciousText: { color: t.color.onBrandPrimary, fontWeight: '800', fontSize: 11, letterSpacing: 0.6 },
-  panchangGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  panchangItem: { width: '32%', padding: t.spacing.sm, backgroundColor: t.color.surface, borderRadius: t.radius.sm, borderWidth: 1, borderColor: t.color.border },
-  pKey: { color: t.color.onSurfaceTertiary, fontSize: 10, letterSpacing: 0.5 },
-  pVal: { color: t.color.onSurface, fontSize: 13, fontWeight: '700', marginTop: 2 },
+  panchangRow: { paddingHorizontal: t.spacing.xl, gap: 8 },
+  panchangCell: {
+    minWidth: 92,
+    paddingHorizontal: 12, paddingVertical: 10,
+    borderRadius: t.radius.md,
+    backgroundColor: t.color.surfaceSecondary,
+    borderWidth: 1, borderColor: t.color.border,
+    flexShrink: 0,
+  },
+  pKey: { color: t.color.onSurfaceTertiary, fontSize: 10, letterSpacing: 0.6, textTransform: 'uppercase' },
+  pVal: { color: t.color.onSurface, fontSize: 13, fontWeight: '700', marginTop: 3 },
   // Tarot
   tarotCard: { marginHorizontal: t.spacing.xl, height: 200, borderRadius: t.radius.lg, overflow: 'hidden', borderWidth: 1, borderColor: t.color.brandSecondary, justifyContent: 'center', alignItems: 'center' },
   tarotBackContent: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
