@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Header, WebSocket, WebSocketDisconnect, Query, Depends
+from fastapi import FastAPI, APIRouter, HTTPException, Header, WebSocket, WebSocketDisconnect, Query, Depends, Request
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -7,6 +7,12 @@ import logging
 import asyncio
 import uuid
 import json
+import hashlib
+import hmac
+import secrets
+import time
+import random
+from collections import defaultdict, deque
 from pathlib import Path
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict
@@ -22,6 +28,20 @@ db = client[os.environ['DB_NAME']]
 
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
 ADMIN_EMAILS = set(e.strip().lower() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip())
+
+# ---------- Security config ----------
+# In DEV mode the OTP is returned in the API response (so the demo works without a real SMS gateway).
+# Set DEV_OTP=false in production and wire a real SMS provider.
+DEV_OTP = os.environ.get('DEV_OTP', 'true').lower() != 'false'
+# Server-side pepper for hashing OTPs at rest. Random per-process is fine — OTPs are short-lived.
+OTP_PEPPER = os.environ.get('OTP_PEPPER') or secrets.token_hex(32)
+# Demo wallet top-up policy — will be replaced by real Razorpay intent/webhook flow.
+WALLET_DAILY_TOPUP_LIMIT = float(os.environ.get('WALLET_DAILY_TOPUP_LIMIT', '500'))     # INR/USD per day
+WALLET_DAILY_TOPUP_COUNT = int(os.environ.get('WALLET_DAILY_TOPUP_COUNT', '3'))         # calls per day
+WALLET_LIFETIME_DEMO_CAP = float(os.environ.get('WALLET_LIFETIME_DEMO_CAP', '2000'))    # total demo credit
+# CORS
+_cors_env = os.environ.get('CORS_ORIGINS', '').strip()
+CORS_ORIGINS = [o.strip() for o in _cors_env.split(',') if o.strip()] or ['*']
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
@@ -63,6 +83,33 @@ async def require_admin(authorization: Optional[str] = Header(None)) -> dict:
     if not user.get('is_admin'):
         raise HTTPException(status_code=403, detail="Admin only")
     return user
+
+# ---------- Rate limiting (in-process sliding window) ----------
+_rate_buckets: Dict[str, deque] = defaultdict(deque)
+
+def rate_limit(key: str, max_hits: int, window_sec: int) -> bool:
+    """Return True if request is allowed, False if it exceeded max_hits within window_sec."""
+    now = time.monotonic()
+    q = _rate_buckets[key]
+    cutoff = now - window_sec
+    while q and q[0] < cutoff:
+        q.popleft()
+    if len(q) >= max_hits:
+        return False
+    q.append(now)
+    return True
+
+def enforce_rate(scope: str, ident: str, max_hits: int, window_sec: int, detail: str = "Too many requests"):
+    if not rate_limit(f"{scope}:{ident}", max_hits, window_sec):
+        raise HTTPException(status_code=429, detail=detail)
+
+# ---------- OTP helpers ----------
+def _hash_otp(phone: str, otp: str) -> str:
+    msg = f"{phone}|{otp}|{OTP_PEPPER}".encode()
+    return hashlib.sha256(msg).hexdigest()
+
+def _generate_otp() -> str:
+    return f"{random.SystemRandom().randint(0, 999999):06d}"
 
 # ---------- Models ----------
 class GoogleAuthPayload(BaseModel):
@@ -414,16 +461,77 @@ async def auth_google(payload: GoogleAuthPayload):
 
 
 @api_router.post("/auth/phone/request")
-async def phone_request(payload: PhoneOtpRequest):
-    # Mock OTP - always return "123456"
-    return {"ok": True, "message": "OTP sent (use 123456 for demo)"}
+async def phone_request(payload: PhoneOtpRequest, request: Request):
+    phone = (payload.phone or '').strip()
+    if not phone or len(phone) < 6 or len(phone) > 20:
+        raise HTTPException(status_code=400, detail="Enter a valid phone number")
+
+    # Rate limits: 3 requests per phone / 10 min, 20 per IP / 10 min.
+    client_ip = (request.client.host if request.client else 'unknown') or 'unknown'
+    enforce_rate("otp_req_phone", phone, 3, 600, detail="Please wait before requesting another code")
+    enforce_rate("otp_req_ip", client_ip, 20, 600, detail="Too many requests from this device")
+
+    otp = _generate_otp()
+    otp_hash = _hash_otp(phone, otp)
+    expires_at = utcnow() + timedelta(minutes=5)
+
+    # Invalidate any previous unused codes for this phone, then insert the fresh one.
+    await db.phone_otps.update_many(
+        {"phone": phone, "used": False},
+        {"$set": {"used": True, "invalidated_at": utcnow()}},
+    )
+    await db.phone_otps.insert_one({
+        "phone": phone,
+        "otp_hash": otp_hash,
+        "attempts": 0,
+        "used": False,
+        "created_at": utcnow(),
+        "expires_at": expires_at,
+    })
+
+    # Log full OTP only when DEV_OTP is on (no real SMS gateway wired yet).
+    if DEV_OTP:
+        logger.info("Dev OTP for %s: %s (expires %s)", phone, otp, expires_at.isoformat())
+
+    resp = {"ok": True, "message": "OTP sent"}
+    if DEV_OTP:
+        # Surfaces the per-phone rotating code to the client while there is no SMS gateway.
+        # Remove by setting DEV_OTP=false once Twilio/MSG91 is wired.
+        resp["dev_otp"] = otp
+    return resp
 
 
 @api_router.post("/auth/phone/verify")
-async def phone_verify(payload: PhoneOtpVerify):
-    if payload.otp != "123456":
+async def phone_verify(payload: PhoneOtpVerify, request: Request):
+    phone = (payload.phone or '').strip()
+    otp = (payload.otp or '').strip()
+    if not phone or not otp or len(otp) != 6 or not otp.isdigit():
         raise HTTPException(status_code=400, detail="Invalid OTP")
-    phone = payload.phone.strip()
+
+    client_ip = (request.client.host if request.client else 'unknown') or 'unknown'
+    enforce_rate("otp_verify_phone", phone, 8, 600, detail="Too many attempts, request a new code")
+    enforce_rate("otp_verify_ip", client_ip, 40, 600, detail="Too many attempts from this device")
+
+    record = await db.phone_otps.find_one(
+        {"phone": phone, "used": False},
+        sort=[("created_at", -1)],
+    )
+    if not record:
+        raise HTTPException(status_code=400, detail="No active OTP — request a new code")
+    if normalize_dt(record.get("expires_at")) < utcnow():
+        raise HTTPException(status_code=400, detail="OTP expired — request a new code")
+    if record.get("attempts", 0) >= 5:
+        await db.phone_otps.update_one({"_id": record["_id"]}, {"$set": {"used": True, "locked_at": utcnow()}})
+        raise HTTPException(status_code=400, detail="Too many failed attempts — request a new code")
+
+    supplied_hash = _hash_otp(phone, otp)
+    if not hmac.compare_digest(supplied_hash, record.get("otp_hash", "")):
+        await db.phone_otps.update_one({"_id": record["_id"]}, {"$inc": {"attempts": 1}})
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+
+    # Success — burn the OTP.
+    await db.phone_otps.update_one({"_id": record["_id"]}, {"$set": {"used": True, "verified_at": utcnow()}})
+
     existing = await db.users.find_one({"phone": phone})
     if existing:
         user_id = existing['user_id']
@@ -432,14 +540,14 @@ async def phone_verify(payload: PhoneOtpVerify):
         await db.users.insert_one({
             "user_id": user_id,
             "phone": phone,
-            "name": payload.name or f"User {phone[-4:]}",
+            "name": (payload.name or f"User {phone[-4:]}")[:60],
             "picture": "",
             "is_admin": False,
             "wallet_balance": 50.0,
             "free_messages_remaining": 3,
             "created_at": utcnow(),
         })
-    session_token = f"phone_{uuid.uuid4().hex}"
+    session_token = f"phone_{secrets.token_urlsafe(32)}"
     await db.user_sessions.insert_one({
         "session_token": session_token,
         "user_id": user_id,
@@ -756,15 +864,51 @@ async def get_wallet(user: dict = Depends(require_user)):
 
 @api_router.post("/wallet/add")
 async def wallet_add(payload: AddMoney, user: dict = Depends(require_user)):
-    if payload.amount <= 0 or payload.amount > 5000:
-        raise HTTPException(status_code=400, detail="Invalid amount")
-    new_balance = round(user['wallet_balance'] + payload.amount, 2)
+    """Demo top-up. Hard-capped daily & lifetime while there is no real payment gateway.
+    Will be replaced by an intent + webhook flow once Razorpay is wired in the next milestone."""
+    amount = float(payload.amount or 0)
+    if amount <= 0 or amount > WALLET_DAILY_TOPUP_LIMIT:
+        raise HTTPException(status_code=400, detail=f"Amount must be between 1 and {int(WALLET_DAILY_TOPUP_LIMIT)}")
+
+    # Per-user rate limit — protects against bursty automated abuse.
+    enforce_rate("wallet_topup_user", user['user_id'], 6, 60, detail="Please wait a moment before adding again")
+
+    # Lifetime demo cap.
+    lifetime_agg = await db.transactions.aggregate([
+        {"$match": {"user_id": user['user_id'], "type": {"$in": ["topup", "topup_demo"]}}},
+        {"$group": {"_id": None, "total": {"$sum": "$amount"}}},
+    ]).to_list(1)
+    lifetime_total = float(lifetime_agg[0]["total"]) if lifetime_agg else 0.0
+    if lifetime_total + amount > WALLET_LIFETIME_DEMO_CAP:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Demo wallet limit reached ({int(WALLET_LIFETIME_DEMO_CAP)}). Real payments (Razorpay) coming soon.",
+        )
+
+    # Daily cap: count + amount.
+    since = utcnow() - timedelta(hours=24)
+    day_txns = await db.transactions.find({
+        "user_id": user['user_id'],
+        "type": {"$in": ["topup", "topup_demo"]},
+        "created_at": {"$gte": since},
+    }, {"_id": 0}).to_list(50)
+    day_count = len(day_txns)
+    day_total = sum(float(t.get('amount', 0)) for t in day_txns)
+    if day_count >= WALLET_DAILY_TOPUP_COUNT:
+        raise HTTPException(status_code=429, detail="Daily top-up count reached — try again tomorrow")
+    if day_total + amount > WALLET_DAILY_TOPUP_LIMIT:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Daily top-up cap ({int(WALLET_DAILY_TOPUP_LIMIT)}) reached — try again tomorrow",
+        )
+
+    new_balance = round(user['wallet_balance'] + amount, 2)
     await db.users.update_one({"user_id": user['user_id']}, {"$set": {"wallet_balance": new_balance}})
     await db.transactions.insert_one({
         "txn_id": f"txn_{uuid.uuid4().hex[:12]}",
         "user_id": user['user_id'],
-        "type": "topup",
-        "amount": payload.amount,
+        "type": "topup_demo",
+        "amount": amount,
         "description": "Wallet top-up (demo)",
         "created_at": utcnow(),
     })
@@ -922,19 +1066,38 @@ async def create_review(payload: ReviewCreate, user: dict = Depends(require_user
     if payload.rating < 1 or payload.rating > 5:
         raise HTTPException(status_code=400, detail="Rating 1-5")
 
-    # Block resubmission for the same chat by the same user
-    if payload.chat_id:
-        existing = await db.reviews.find_one({"chat_id": payload.chat_id, "user_id": user['user_id']})
-        if existing:
-            raise HTTPException(status_code=409, detail="You have already reviewed this session")
+    # Per-user throttle to prevent scripted spam.
+    enforce_rate("review_user", user['user_id'], 10, 3600, detail="Too many reviews in a short time")
+
+    # A review MUST be bound to a real chat the user actually had with the astrologer.
+    if not payload.chat_id:
+        raise HTTPException(status_code=400, detail="chat_id is required to submit a review")
+
+    chat = await db.chats.find_one({"chat_id": payload.chat_id}, {"_id": 0})
+    if not chat:
+        raise HTTPException(status_code=404, detail="Chat not found")
+    if chat.get("user_id") != user['user_id']:
+        raise HTTPException(status_code=403, detail="You can only review your own sessions")
+    if chat.get("astrologer_id") != payload.astrologer_id:
+        raise HTTPException(status_code=400, detail="Astrologer does not match this chat")
+
+    # Require at least one user message so drive-by ratings aren't possible.
+    had_msg = await db.messages.find_one({"chat_id": payload.chat_id, "sender": "user"}, {"_id": 1})
+    if not had_msg:
+        raise HTTPException(status_code=400, detail="You can review after chatting with the astrologer")
+
+    # One review per chat per user.
+    existing = await db.reviews.find_one({"chat_id": payload.chat_id, "user_id": user['user_id']})
+    if existing:
+        raise HTTPException(status_code=409, detail="You have already reviewed this session")
 
     review = {
         "review_id": f"rev_{uuid.uuid4().hex[:12]}",
         "astrologer_id": payload.astrologer_id,
         "user_id": user['user_id'],
-        "user_name": user.get('name', 'Anonymous'),
-        "rating": payload.rating,
-        "comment": payload.comment,
+        "user_name": user.get('name', 'Anonymous'),  # server-derived; client value ignored
+        "rating": int(payload.rating),
+        "comment": (payload.comment or '')[:1000],
         "chat_id": payload.chat_id,
         "created_at": utcnow(),
     }
@@ -1101,16 +1264,42 @@ async def get_dosh(key: str):
 
 
 # ---------- Orders ----------
+def _lookup_catalog_item(item_type: str, item_key: str):
+    """Return (label, price_inr) from the server-side catalog, or None if unknown."""
+    if item_type == 'pooja':
+        for p in REMEDIES_DATA.get('poojas', []):
+            if p.get('key') == item_key:
+                return p.get('label'), int(p.get('price_inr') or 0)
+    elif item_type == 'offer':
+        for o in REMEDIES_DATA.get('offers', []):
+            if o.get('id') == item_key:
+                return o.get('title'), int(o.get('price_inr') or 0)
+    return None
+
+
 @api_router.post("/orders")
 async def create_order(payload: OrderCreate, user: dict = Depends(require_user)):
+    if payload.item_type not in ('pooja', 'offer'):
+        raise HTTPException(status_code=400, detail="Invalid item_type")
+
+    resolved = _lookup_catalog_item(payload.item_type, payload.item_key)
+    if not resolved:
+        raise HTTPException(status_code=404, detail="Item not found in catalog")
+    label, price_inr = resolved
+    if price_inr <= 0:
+        raise HTTPException(status_code=400, detail="Item is not orderable")
+
+    # Per-user rate limit — 10 orders/hour is more than enough for real usage.
+    enforce_rate("order_user", user['user_id'], 10, 3600, detail="Too many orders in a short time")
+
     order = {
         "order_id": f"ord_{uuid.uuid4().hex[:12]}",
         "user_id": user["user_id"],
         "item_type": payload.item_type,
         "item_key": payload.item_key,
-        "label": payload.label,
-        "price_inr": payload.price_inr,
-        "notes": payload.notes or "",
+        "label": label,                # server-derived
+        "price_inr": price_inr,        # server-derived
+        "notes": (payload.notes or "")[:500],
         "status": "confirmed",
         "created_at": utcnow(),
     }
@@ -1138,8 +1327,11 @@ app.include_router(api_router)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=["*"],
+    # Bearer-header auth (no cookies), so credential reflection is not required.
+    # Setting allow_credentials=False lets us keep permissive origins for the mobile client
+    # without exposing the credential-echo class of vulnerabilities.
+    allow_credentials=False,
+    allow_origins=CORS_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )

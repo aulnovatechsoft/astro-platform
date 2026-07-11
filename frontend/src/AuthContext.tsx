@@ -20,7 +20,7 @@ type Ctx = {
   loading: boolean;
   loginWithGoogle: () => Promise<void>;
   loginWithPhone: (phone: string, otp: string, name?: string) => Promise<void>;
-  requestOtp: (phone: string) => Promise<void>;
+  requestOtp: (phone: string) => Promise<string | null>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 };
@@ -89,7 +89,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const requestOtp = useCallback(async (phone: string) => {
-    await api.post('/api/auth/phone/request', { phone });
+    const resp = await api.post('/api/auth/phone/request', { phone });
+    // In demo mode the server returns the fresh per-phone OTP so the UI can display it.
+    // Once a real SMS gateway is wired (DEV_OTP=false) this field disappears.
+    return (resp && resp.dev_otp) ? (resp.dev_otp as string) : null;
   }, []);
 
   const loginWithPhone = useCallback(async (phone: string, otp: string, name?: string) => {

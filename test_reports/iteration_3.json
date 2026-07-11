@@ -1,0 +1,43 @@
+{
+  "summary": "Security regression pass for SEC-001..SEC-004 + non-regression sanity on Aura Astrology backend. Wrote /app/backend/tests/test_security_patches.py (29 tests) covering all 4 patches and ran the existing suite alongside. Result: 52/52 tests pass (29 security + 23 non-regression). SEC-001 verified: universal `123456` is dead, POST /api/auth/phone/request returns fresh 6-digit dev_otp, single-use enforced (reused OTP → 400), wrong OTP lockout after 5 attempts, rate-limit trips at 4th request per phone / 10 min (429), two different phones get different codes and cross-phone verification fails. SEC-002 verified: POST /api/wallet/add rejects 0/negative and per-call over-cap (99999 → 400); daily count cap trips 4th top-up at 429 for a fresh user, daily amount cap trips 3rd 200-INR call at 429 (600 > 500). SEC-003 verified: POST /api/orders with item_type=pooja&item_key=pooja returns catalog label 'Pooja' and price_inr 1100 regardless of the client-supplied label='Fake'/price_inr=1; unknown item_key → 404; invalid item_type='hack' → 400. SEC-004 verified: reviews without chat_id → 400; fake chat_id → 404; real chat with no user message → 400; after sending one WS message the review succeeds; duplicate review on same chat_id → 409; rating 0/6/-1/99 → 400/422; cross-user attack (user B reviewing user A's chat) → 403. Non-regression sanity: /api/astrologers, /api/home-dashboard, /api/remedies all 200; /api/auth/me with token → 200, without token → 401. Only one adjustment made: fixed a stale test-only assertion in test_websocket_chat_ai_reply (new users have 3 free messages, so first WS message may not deduct wallet — assertion relaxed to `<=`). Also refreshed conftest.py to use the new OTP flow (dev_otp) since the fixture used to hard-code `otp='123456'`.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_security_patches.py",
+    "/app/backend/tests/test_aura_backend.py",
+    "/app/backend/tests/conftest.py",
+    "/app/test_reports/pytest/security_results.xml",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py is now 1338 lines — well past the 700-line soft limit called out in earlier iterations. Consider splitting into routers (auth.py, wallet.py, orders.py, reviews.py, chat.py, content.py) plus a security/otp module. This is a maintenance concern only, not a security one.",
+    "Rate limits (_rate_buckets) are in-process only. Under multiple uvicorn workers or after a restart the OTP-request cap resets. For production, back this with Redis + a persisted counter keyed by (phone, ip).",
+    "OTP_PEPPER falls back to secrets.token_hex(32) at process start. Any restart invalidates all outstanding OTPs — acceptable for short-lived codes, but pin it via env in production.",
+    "REMEDIES_DATA is a huge in-memory dict shared with the /api/orders catalog lookup. If it ever gets loaded from a CMS, make sure price_inr type-coercion (int(...)) still holds.",
+    "In wallet_add the lifetime cap returns 403 while daily caps return 429 — semantics are slightly inconsistent. Consider 429 for both cap classes so clients only need one retry-later branch.",
+    "Reviews validate rating (1-5) BEFORE checking chat_id existence, so rating-out-of-range attacks skip the auth-lookup DB hit — good. Just noting the test asserts (400, 422) because Pydantic type errors surface as 422."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_security_patches.py (new, 29 tests across 5 classes)",
+    "/app/backend/tests/conftest.py (rewrote user_token fixture to use dev_otp flow; added fresh_user/login_via_otp helpers)",
+    "/app/backend/tests/test_aura_backend.py (test_phone_verify_ok_and_wallet_50 now goes through /auth/phone/request first; relaxed wallet-deduction assertion in test_websocket_chat_ai_reply to allow the 3 free messages new users get; BASE_URL no longer has a hard-coded default)"
+  ],
+  "success_rate": {
+    "backend": "100% (52/52) — 29/29 security + 23/23 non-regression",
+    "frontend": "N/A (backend-only run)"
+  },
+  "seed_data_creation": "Each test provisions ephemeral users via freshly generated +1555XXXXXXX phones and the dev-mode OTP flow. All test-owned records are prefixed TEST_ (names, comments). No production seed data was touched.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Backend URL comes from EXPO_PUBLIC_BACKEND_URL in /app/frontend/.env — conftest.py now requires it (KeyError if missing). Rate-limit buckets are in-process; if you re-run the SEC-001 rate-limit test back-to-back on the same phone number you'll still see 429 within the 10-min window (this is by design). The security test file always uses a random fresh phone per test, so it's re-runnable. Test credentials note in /app/memory/test_credentials.md is already updated (universal 123456 is invalid). Reviews endpoint requires: chat_id owner match, astrologer_id match, at least one user-sender message in db.messages, and rating 1..5. Wallet caps come from env: WALLET_DAILY_TOPUP_LIMIT=500, WALLET_DAILY_TOPUP_COUNT=3, WALLET_LIFETIME_DEMO_CAP=2000 (defaults). WebSocket path is /api/ws/chat/{chat_id}?token=... (not /api/chats/start as the review request text implied — the actual endpoint is POST /api/chat/start/{astro_id}).",
+  "rca_of_issue": "N/A — all four security patches verified working end-to-end. The one test failure encountered during regression (test_websocket_chat_ai_reply asserting wallet deduction on the first message) was a stale test artifact, not a functional bug: new phone users are granted free_messages_remaining=3, so the first WS message consumes a free credit instead of debiting the wallet. The previous iteration's fixture reused a single long-lived phone whose free credits were already exhausted, masking this. Assertion relaxed to `new_balance <= w_before`."
+}

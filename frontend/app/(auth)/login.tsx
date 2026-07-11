@@ -18,6 +18,7 @@ export default function Login() {
   const [otp, setOtp] = useState('');
   const [name, setName] = useState('');
   const [otpSent, setOtpSent] = useState(false);
+  const [devOtp, setDevOtp] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
 
@@ -31,7 +32,16 @@ export default function Login() {
   const onRequestOtp = async () => {
     if (!phone.trim()) return setErr('Enter phone');
     setBusy(true); setErr('');
-    try { await requestOtp(phone.trim()); setOtpSent(true); }
+    try {
+      const code = await requestOtp(phone.trim());
+      setOtpSent(true);
+      if (code) {
+        setDevOtp(code);
+        setOtp(code); // demo convenience — real SMS gateway would set DEV_OTP=false
+      } else {
+        setDevOtp(null);
+      }
+    }
     catch (e: any) { setErr(e.message); }
     finally { setBusy(false); }
   };
@@ -110,7 +120,9 @@ export default function Login() {
                         value={name}
                         onChangeText={setName}
                       />
-                      <Text style={styles.formLabel}>OTP (use 123456)</Text>
+                      <Text style={styles.formLabel}>
+                        {devOtp ? `OTP (demo code: ${devOtp})` : 'OTP'}
+                      </Text>
                       <TextInput
                         testID="otp-input"
                         style={styles.input}

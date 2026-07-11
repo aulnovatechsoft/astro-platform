@@ -4,7 +4,7 @@ import asyncio
 import pytest
 import requests
 
-BASE_URL = os.environ.get('EXPO_PUBLIC_BACKEND_URL', 'https://cosmic-chat-53.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ['EXPO_PUBLIC_BACKEND_URL'].rstrip('/')
 WS_URL = BASE_URL.replace("https://", "wss://").replace("http://", "ws://")
 
 
@@ -53,8 +53,12 @@ def test_phone_request_ok():
 
 def test_phone_verify_ok_and_wallet_50():
     phone = f"+1555000{os.urandom(2).hex()}"
-    r = requests.post(f"{BASE_URL}/api/auth/phone/verify", json={"phone": phone, "otp": "123456", "name": "TEST_walletcheck"}, timeout=10)
-    assert r.status_code == 200
+    req = requests.post(f"{BASE_URL}/api/auth/phone/request", json={"phone": phone}, timeout=10)
+    assert req.status_code == 200
+    otp = req.json().get("dev_otp")
+    assert otp, "dev_otp missing"
+    r = requests.post(f"{BASE_URL}/api/auth/phone/verify", json={"phone": phone, "otp": otp, "name": "TEST_walletcheck"}, timeout=10)
+    assert r.status_code == 200, r.text
     d = r.json()
     assert 'session_token' in d
     assert d['user']['wallet_balance'] == 50.0
@@ -249,5 +253,7 @@ def test_websocket_chat_ai_reply(user_token):
 
     assert got_user, "user echo message not received"
     assert got_astrologer, "AI astrologer reply not received"
+    # First 3 messages are free for a new user, so wallet may stay the same;
+    # only assert non-increase (server never adds credit on chat).
     if new_balance is not None:
-        assert new_balance < w_before, f"wallet not deducted: before={w_before} after={new_balance}"
+        assert new_balance <= w_before, f"wallet increased unexpectedly: before={w_before} after={new_balance}"

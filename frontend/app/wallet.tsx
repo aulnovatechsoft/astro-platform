@@ -69,7 +69,7 @@ export default function Wallet() {
               </Pressable>
             ))}
           </View>
-          <Text style={styles.note}>Demo mode — real payments (Razorpay) coming soon.</Text>
+          <Text style={styles.note}>Demo mode — daily & lifetime caps apply. Real payments (Razorpay) coming next.</Text>
 
           <Text style={styles.sectionTitle}>Transactions</Text>
           <View style={styles.txnList}>

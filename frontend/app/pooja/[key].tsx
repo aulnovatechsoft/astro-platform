@@ -33,6 +33,8 @@ export default function PoojaDetail() {
       const order = await api.post('/api/orders', {
         item_type: isOffer ? 'offer' : 'pooja',
         item_key: item.key ?? item.id,
+        // label & price are now derived server-side from the catalog for integrity;
+        // we still send them so the Pydantic model remains satisfied, but they are ignored.
         label: item.title ?? item.label,
         price_inr: item.price_inr,
         notes: notes.trim() || undefined,
