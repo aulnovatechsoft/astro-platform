@@ -19,7 +19,8 @@ export default function Profile() {
   const items = [
     { key: 'wallet', label: 'Wallet & Transactions', icon: 'wallet-outline', route: '/wallet' },
     { key: 'chats', label: 'My Consultations', icon: 'chatbubbles-outline', route: '/(tabs)/chats' },
-    { key: 'kundli', label: 'My Kundli', icon: 'moon-outline', route: '/(tabs)/kundli' },
+    { key: 'kundli', label: 'Kundli & Horoscope', icon: 'moon-outline', route: '/(tabs)/kundli' },
+    { key: 'remedies', label: 'Remedies & Store', icon: 'flower-outline', route: '/(tabs)/remedies' },
   ] as const;
 
   return (
