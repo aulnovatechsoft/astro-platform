@@ -220,24 +220,53 @@ export default function Remedies() {
           </ScrollView>
 
           {/* Poojas grid */}
-          <Text style={[styles.sectionTitle, { marginTop: t.spacing.xxl, paddingHorizontal: t.spacing.xl, marginBottom: t.spacing.md }]}>Poojas & rituals</Text>
+          <View style={styles.poojaSectionHeader}>
+            <View>
+              <Text style={styles.poojaEyebrow}>SACRED SERVICES</Text>
+              <Text style={styles.sectionTitle}>Poojas & rituals</Text>
+            </View>
+            <Pressable testID="poojas-view-all" hitSlop={8}>
+              <Text style={styles.seeAll}>View All</Text>
+            </Pressable>
+          </View>
           <View style={styles.poojaGrid}>
-            {poojas.map((p: any) => (
-              <Pressable
-                key={p.key}
-                testID={`pooja-${p.key}`}
-                style={styles.poojaCard}
-                onPress={() => router.push(`/pooja/${p.key}` as any)}
-              >
-                <Image source={p.image} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
-                <LinearGradient
-                  colors={['rgba(0,0,0,0.05)', 'rgba(0,0,0,0.85)']}
-                  style={StyleSheet.absoluteFill}
-                />
-                <View style={styles.poojaTag}><Text style={styles.poojaTagText}>{p.tag}</Text></View>
-                <Text style={styles.poojaLabel}>{p.label}</Text>
-              </Pressable>
-            ))}
+            {poojas.map((p: any) => {
+              const priceLabel = p.price_inr ? `₹${p.price_inr}` : (p.tag || '').replace(/^STARTS AT\s*/i, '');
+              const isTrending = (p.tag || '').toUpperCase() === 'TRENDING';
+              return (
+                <Pressable
+                  key={p.key}
+                  testID={`pooja-${p.key}`}
+                  style={styles.poojaCard}
+                  onPress={() => router.push(`/pooja/${p.key}` as any)}
+                >
+                  <View style={styles.poojaImgWrap}>
+                    <Image source={p.image} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
+                    <LinearGradient
+                      colors={['rgba(0,0,0,0.0)', 'rgba(0,0,0,0.55)']}
+                      locations={[0.35, 1]}
+                      style={StyleSheet.absoluteFill}
+                    />
+                    {isTrending && (
+                      <View style={styles.trendingRibbon}>
+                        <Ionicons name="flame" size={9} color="#fff" />
+                        <Text style={styles.trendingRibbonText}>TRENDING</Text>
+                      </View>
+                    )}
+                  </View>
+                  <View style={styles.poojaMeta}>
+                    <Text style={styles.poojaLabel} numberOfLines={1}>{p.label}</Text>
+                    {!!p.duration && <Text style={styles.poojaDuration} numberOfLines={1}>{p.duration}</Text>}
+                    <View style={styles.poojaFooter}>
+                      <Text style={styles.poojaPrice}>{priceLabel || 'Book'}</Text>
+                      <View style={styles.poojaArrow}>
+                        <Ionicons name="arrow-forward" size={12} color={t.color.onBrandPrimary} />
+                      </View>
+                    </View>
+                  </View>
+                </Pressable>
+              );
+            })}
           </View>
 
           {/* Top Selling */}
@@ -350,22 +379,51 @@ function useStyles() {
     storeImg: { width: 88, height: 88, borderRadius: t.radius.md, borderWidth: 1, borderColor: t.color.border },
     storeLabel: { color: t.color.onSurface, fontSize: 11, fontWeight: '600', textAlign: 'center' },
 
-    poojaGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingHorizontal: t.spacing.xl },
+    poojaSectionHeader: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end',
+      paddingHorizontal: t.spacing.xl, marginTop: t.spacing.xxl, marginBottom: t.spacing.md,
+    },
+    poojaEyebrow: { color: t.color.brand, fontSize: 10, letterSpacing: 2, fontWeight: '700', marginBottom: 2 },
+
+    poojaGrid: {
+      flexDirection: 'row', flexWrap: 'wrap',
+      paddingHorizontal: t.spacing.xl,
+      justifyContent: 'space-between',
+    },
     poojaCard: {
-      width: (SCREEN_W - 48 - 12) / 2,
-      aspectRatio: 0.95,
-      borderRadius: t.radius.md, overflow: 'hidden',
-      justifyContent: 'flex-end',
-      borderWidth: 1, borderColor: t.color.border,
+      width: '48.5%',
+      borderRadius: t.radius.lg,
+      overflow: 'hidden',
+      backgroundColor: t.color.surfaceSecondary,
+      borderWidth: StyleSheet.hairlineWidth, borderColor: t.color.border,
+      shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2,
+      marginBottom: 14,
     },
-    poojaTag: {
-      position: 'absolute', top: 8, left: 0,
+    poojaImgWrap: {
+      width: '100%',
+      aspectRatio: 1.15,
+      backgroundColor: t.color.brandTertiary,
+    },
+    trendingRibbon: {
+      position: 'absolute', top: 8, left: 8,
+      flexDirection: 'row', alignItems: 'center', gap: 3,
       backgroundColor: t.color.error,
-      paddingHorizontal: 10, paddingVertical: 4,
-      borderTopRightRadius: t.radius.pill, borderBottomRightRadius: t.radius.pill,
+      paddingHorizontal: 7, paddingVertical: 3, borderRadius: t.radius.pill,
     },
-    poojaTagText: { color: '#fff', fontSize: 9, fontWeight: '800', letterSpacing: 0.6 },
-    poojaLabel: { color: '#fff', fontSize: 16, fontWeight: '800', padding: 12, lineHeight: 20 },
+    trendingRibbonText: { color: '#fff', fontSize: 8, fontWeight: '800', letterSpacing: 0.6 },
+    poojaMeta: { padding: 10, gap: 2 },
+    poojaLabel: { color: t.color.onSurface, fontSize: 14, fontWeight: '700' },
+    poojaDuration: { color: t.color.onSurfaceTertiary, fontSize: 10, letterSpacing: 0.3 },
+    poojaFooter: {
+      marginTop: 6,
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    },
+    poojaPrice: { color: t.color.brand, fontSize: 13, fontWeight: '800' },
+    poojaArrow: {
+      width: 24, height: 24, borderRadius: 12,
+      backgroundColor: t.color.brandPrimary,
+      alignItems: 'center', justifyContent: 'center',
+    },
 
     subSection: { marginTop: t.spacing.xl, paddingBottom: t.spacing.md, paddingTop: 4 },
     circleRow: { paddingHorizontal: t.spacing.xl, gap: 12, alignItems: 'flex-start' },

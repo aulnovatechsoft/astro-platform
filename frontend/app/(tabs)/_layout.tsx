@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -40,7 +40,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: ({ color, size }) => <Ionicons name="home" color={color} size={size} /> }} />
       <Tabs.Screen name="astrologers" options={{ title: 'Astrologers', tabBarIcon: ({ color, size }) => <Ionicons name="sparkles" color={color} size={size} /> }} />
       <Tabs.Screen name="chats" options={{ title: 'Chats', tabBarIcon: ({ color, size }) => <Ionicons name="chatbubbles" color={color} size={size} /> }} />
-      <Tabs.Screen name="remedies" options={{ title: 'Remedies', tabBarIcon: ({ color, size }) => <Ionicons name="flower" color={color} size={size} /> }} />
+      <Tabs.Screen name="remedies" options={{ title: 'Remedies', tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="hands-pray" color={color} size={size} /> }} />
       <Tabs.Screen name="kundli" options={{ href: null, title: 'Kundli' }} />
       <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: ({ color, size }) => <Ionicons name="person-circle" color={color} size={size} /> }} />
     </Tabs>
