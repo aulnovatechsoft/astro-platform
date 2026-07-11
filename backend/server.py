@@ -187,18 +187,18 @@ SEED_ASTROLOGERS = [
 ]
 
 ZODIAC = [
-    {"sign": "Aries",       "dates": "Mar 21 - Apr 19", "element": "Fire",  "image": "https://images.unsplash.com/photo-1533928298208-27ff66555d8d?w=300&h=300&fit=crop&q=80"},
-    {"sign": "Taurus",      "dates": "Apr 20 - May 20", "element": "Earth", "image": "https://images.unsplash.com/photo-1516467508483-a7212febe31a?w=300&h=300&fit=crop&q=80"},
-    {"sign": "Gemini",      "dates": "May 21 - Jun 20", "element": "Air",   "image": "https://images.unsplash.com/photo-1509515837298-2c67a3933321?w=300&h=300&fit=crop&q=80"},
-    {"sign": "Cancer",      "dates": "Jun 21 - Jul 22", "element": "Water", "image": "https://images.unsplash.com/photo-1527842891421-42eec6e703ea?w=300&h=300&fit=crop&q=80"},
-    {"sign": "Leo",         "dates": "Jul 23 - Aug 22", "element": "Fire",  "image": "https://images.unsplash.com/photo-1546182990-dffeafbe841d?w=300&h=300&fit=crop&q=80"},
-    {"sign": "Virgo",       "dates": "Aug 23 - Sep 22", "element": "Earth", "image": "https://images.unsplash.com/photo-1476231682828-37e571bc172f?w=300&h=300&fit=crop&q=80"},
-    {"sign": "Libra",       "dates": "Sep 23 - Oct 22", "element": "Air",   "image": "https://images.unsplash.com/photo-1522441815192-d9f04eb0615c?w=300&h=300&fit=crop&q=80"},
-    {"sign": "Scorpio",     "dates": "Oct 23 - Nov 21", "element": "Water", "image": "https://images.unsplash.com/photo-1470240731273-7821a6eeb6bd?w=300&h=300&fit=crop&q=80"},
-    {"sign": "Sagittarius", "dates": "Nov 22 - Dec 21", "element": "Fire",  "image": "https://images.unsplash.com/photo-1470813740244-df37b8c1edcb?w=300&h=300&fit=crop&q=80"},
-    {"sign": "Capricorn",   "dates": "Dec 22 - Jan 19", "element": "Earth", "image": "https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=300&h=300&fit=crop&q=80"},
-    {"sign": "Aquarius",    "dates": "Jan 20 - Feb 18", "element": "Air",   "image": "https://images.unsplash.com/photo-1524055988636-436cfa46e59e?w=300&h=300&fit=crop&q=80"},
-    {"sign": "Pisces",      "dates": "Feb 19 - Mar 20", "element": "Water", "image": "https://images.unsplash.com/photo-1524704654690-b56c05c78a00?w=300&h=300&fit=crop&q=80"},
+    {"sign": "Aries",       "glyph": "\u2648", "dates": "Mar 21 - Apr 19", "element": "Fire",  "image": "https://images.unsplash.com/photo-1533928298208-27ff66555d8d?w=300&h=300&fit=crop&q=80"},
+    {"sign": "Taurus",      "glyph": "\u2649", "dates": "Apr 20 - May 20", "element": "Earth", "image": "https://images.unsplash.com/photo-1516467508483-a7212febe31a?w=300&h=300&fit=crop&q=80"},
+    {"sign": "Gemini",      "glyph": "\u264A", "dates": "May 21 - Jun 20", "element": "Air",   "image": "https://images.unsplash.com/photo-1509515837298-2c67a3933321?w=300&h=300&fit=crop&q=80"},
+    {"sign": "Cancer",      "glyph": "\u264B", "dates": "Jun 21 - Jul 22", "element": "Water", "image": "https://images.unsplash.com/photo-1527842891421-42eec6e703ea?w=300&h=300&fit=crop&q=80"},
+    {"sign": "Leo",         "glyph": "\u264C", "dates": "Jul 23 - Aug 22", "element": "Fire",  "image": "https://images.unsplash.com/photo-1546182990-dffeafbe841d?w=300&h=300&fit=crop&q=80"},
+    {"sign": "Virgo",       "glyph": "\u264D", "dates": "Aug 23 - Sep 22", "element": "Earth", "image": "https://images.unsplash.com/photo-1476231682828-37e571bc172f?w=300&h=300&fit=crop&q=80"},
+    {"sign": "Libra",       "glyph": "\u264E", "dates": "Sep 23 - Oct 22", "element": "Air",   "image": "https://images.unsplash.com/photo-1522441815192-d9f04eb0615c?w=300&h=300&fit=crop&q=80"},
+    {"sign": "Scorpio",     "glyph": "\u264F", "dates": "Oct 23 - Nov 21", "element": "Water", "image": "https://images.unsplash.com/photo-1470240731273-7821a6eeb6bd?w=300&h=300&fit=crop&q=80"},
+    {"sign": "Sagittarius", "glyph": "\u2650", "dates": "Nov 22 - Dec 21", "element": "Fire",  "image": "https://images.unsplash.com/photo-1470813740244-df37b8c1edcb?w=300&h=300&fit=crop&q=80"},
+    {"sign": "Capricorn",   "glyph": "\u2651", "dates": "Dec 22 - Jan 19", "element": "Earth", "image": "https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=300&h=300&fit=crop&q=80"},
+    {"sign": "Aquarius",    "glyph": "\u2652", "dates": "Jan 20 - Feb 18", "element": "Air",   "image": "https://images.unsplash.com/photo-1524055988636-436cfa46e59e?w=300&h=300&fit=crop&q=80"},
+    {"sign": "Pisces",      "glyph": "\u2653", "dates": "Feb 19 - Mar 20", "element": "Water", "image": "https://images.unsplash.com/photo-1524704654690-b56c05c78a00?w=300&h=300&fit=crop&q=80"},
 ]
 
 DAILY_HOROSCOPE = {

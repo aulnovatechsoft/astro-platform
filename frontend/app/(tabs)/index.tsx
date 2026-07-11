@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl, FlatList, TextInput, Animated } from 'react-native';
+import Reanimated, { useSharedValue, useAnimatedStyle, withSpring, withTiming } from 'react-native-reanimated';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,19 +12,14 @@ import { useTheme } from '@/src/ThemeContext';
 
 const MOON_BG = 'https://images.unsplash.com/photo-1527842891421-42eec6e703ea?crop=entropy&cs=srgb&fm=jpg&w=1000&q=85';
 
-const ZODIAC = [
-  { sign: 'Aries',       glyph: '♈', image: 'https://images.unsplash.com/photo-1533928298208-27ff66555d8d?w=200&h=200&fit=crop&q=80' },
-  { sign: 'Taurus',      glyph: '♉', image: 'https://images.unsplash.com/photo-1516467508483-a7212febe31a?w=200&h=200&fit=crop&q=80' },
-  { sign: 'Gemini',      glyph: '♊', image: 'https://images.unsplash.com/photo-1509515837298-2c67a3933321?w=200&h=200&fit=crop&q=80' },
-  { sign: 'Cancer',      glyph: '♋', image: 'https://images.unsplash.com/photo-1527842891421-42eec6e703ea?w=200&h=200&fit=crop&q=80' },
-  { sign: 'Leo',         glyph: '♌', image: 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?w=200&h=200&fit=crop&q=80' },
-  { sign: 'Virgo',       glyph: '♍', image: 'https://images.unsplash.com/photo-1476231682828-37e571bc172f?w=200&h=200&fit=crop&q=80' },
-  { sign: 'Libra',       glyph: '♎', image: 'https://images.unsplash.com/photo-1522441815192-d9f04eb0615c?w=200&h=200&fit=crop&q=80' },
-  { sign: 'Scorpio',     glyph: '♏', image: 'https://images.unsplash.com/photo-1470240731273-7821a6eeb6bd?w=200&h=200&fit=crop&q=80' },
-  { sign: 'Sagittarius', glyph: '♐', image: 'https://images.unsplash.com/photo-1470813740244-df37b8c1edcb?w=200&h=200&fit=crop&q=80' },
-  { sign: 'Capricorn',   glyph: '♑', image: 'https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=200&h=200&fit=crop&q=80' },
-  { sign: 'Aquarius',    glyph: '♒', image: 'https://images.unsplash.com/photo-1524055988636-436cfa46e59e?w=200&h=200&fit=crop&q=80' },
-  { sign: 'Pisces',      glyph: '♓', image: 'https://images.unsplash.com/photo-1524704654690-b56c05c78a00?w=200&h=200&fit=crop&q=80' },
+// Fallback used until /api/zodiacs resolves (matches backend shape).
+const ZODIAC_FALLBACK: Array<{ sign: string; glyph: string; image: string }> = [
+  { sign: 'Aries', glyph: '\u2648', image: '' }, { sign: 'Taurus', glyph: '\u2649', image: '' },
+  { sign: 'Gemini', glyph: '\u264A', image: '' }, { sign: 'Cancer', glyph: '\u264B', image: '' },
+  { sign: 'Leo', glyph: '\u264C', image: '' }, { sign: 'Virgo', glyph: '\u264D', image: '' },
+  { sign: 'Libra', glyph: '\u264E', image: '' }, { sign: 'Scorpio', glyph: '\u264F', image: '' },
+  { sign: 'Sagittarius', glyph: '\u2650', image: '' }, { sign: 'Capricorn', glyph: '\u2651', image: '' },
+  { sign: 'Aquarius', glyph: '\u2652', image: '' }, { sign: 'Pisces', glyph: '\u2653', image: '' },
 ];
 
 const QUICK_ACTIONS = [
@@ -52,6 +48,50 @@ function LivePulse() {
   );
 }
 
+function ZodiacCard({
+  z, active, onPress, brand, surface,
+}: {
+  z: { sign: string; glyph: string; image: string };
+  active: boolean;
+  onPress: () => void;
+  brand: string;
+  surface: string;
+}) {
+  const styles = useStyles();
+  const scale = useSharedValue(active ? 1.12 : 1);
+  const opacity = useSharedValue(active ? 1 : 0.75);
+
+  useEffect(() => {
+    scale.value = withSpring(active ? 1.12 : 1, { damping: 14, stiffness: 220, mass: 0.6 });
+    opacity.value = withTiming(active ? 1 : 0.75, { duration: 220 });
+  }, [active, scale, opacity]);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: opacity.value,
+  }));
+
+  return (
+    <Pressable testID={`home-zodiac-${z.sign}`} onPress={onPress} style={styles.signCard} hitSlop={4}>
+      <Reanimated.View style={animStyle}>
+        <View style={[styles.signImgWrap, active && { borderColor: brand }]}>
+          {z.image ? (
+            <Image source={z.image} style={styles.signImg} contentFit="cover" transition={200} />
+          ) : (
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: '#26262E' }]} />
+          )}
+          <LinearGradient
+            colors={active ? ['rgba(0,0,0,0)', 'rgba(0,0,0,0.35)'] : ['rgba(0,0,0,0)', 'rgba(0,0,0,0.55)']}
+            style={StyleSheet.absoluteFill}
+          />
+          {active && <View style={[styles.signActiveDot, { borderColor: surface }]} />}
+        </View>
+      </Reanimated.View>
+      <Text style={[styles.signCardLabel, active && { color: brand }]}>{z.sign.slice(0, 3)}</Text>
+    </Pressable>
+  );
+}
+
 export default function Home() {
   const t = useTheme();
   const styles = useStyles();
@@ -64,6 +104,7 @@ export default function Home() {
   const [compatB, setCompatB] = useState('Aries');
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
+  const [zodiacs, setZodiacs] = useState<Array<{ sign: string; glyph: string; image: string }>>(ZODIAC_FALLBACK);
 
   const load = useCallback(async (s: string) => {
     const d = await api.get(`/api/home-dashboard?sign=${s}`);
@@ -74,6 +115,9 @@ export default function Home() {
   useEffect(() => {
     api.get(`/api/compatibility?sign1=${sign}&sign2=${compatB}`).then(setCompat).catch(() => {});
   }, [sign, compatB]);
+  useEffect(() => {
+    api.get('/api/zodiacs').then((z) => Array.isArray(z) && z.length === 12 && setZodiacs(z)).catch(() => {});
+  }, []);
 
   const onRefresh = async () => { setRefreshing(true); try { await load(sign); } finally { setRefreshing(false); } };
 
@@ -125,27 +169,16 @@ export default function Home() {
           {/* ZODIAC SELECTOR — image-forward cards */}
           <Text style={styles.sectionEyebrow}>YOUR SIGN</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.zodiacRow}>
-            {ZODIAC.map((z) => {
-              const active = sign === z.sign;
-              return (
-                <Pressable
-                  key={z.sign}
-                  testID={`home-zodiac-${z.sign}`}
-                  style={styles.signCard}
-                  onPress={() => setSign(z.sign)}
-                >
-                  <View style={[styles.signImgWrap, active && { borderColor: t.color.brand }]}>
-                    <Image source={z.image} style={styles.signImg} contentFit="cover" transition={200} />
-                    <LinearGradient
-                      colors={active ? ['rgba(0,0,0,0)', 'rgba(0,0,0,0.35)'] : ['rgba(0,0,0,0)', 'rgba(0,0,0,0.55)']}
-                      style={StyleSheet.absoluteFill}
-                    />
-                    {active && <View style={styles.signActiveDot} />}
-                  </View>
-                  <Text style={[styles.signCardLabel, active && { color: t.color.brand }]}>{z.sign.slice(0, 3)}</Text>
-                </Pressable>
-              );
-            })}
+            {zodiacs.map((z) => (
+              <ZodiacCard
+                key={z.sign}
+                z={z}
+                active={sign === z.sign}
+                onPress={() => setSign(z.sign)}
+                brand={t.color.brand}
+                surface={t.color.surface}
+              />
+            ))}
           </ScrollView>
 
           {/* HERO HOROSCOPE CARD */}
@@ -302,7 +335,7 @@ export default function Home() {
             </View>
             <Text style={styles.compatVerdict}>{compat?.verdict}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingTop: t.spacing.md }}>
-              {ZODIAC.map((z) => (
+              {zodiacs.map((z) => (
                 <Pressable
                   key={z.sign}
                   testID={`compat-b-${z.sign}`}
